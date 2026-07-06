@@ -457,34 +457,38 @@ ${err ? `<div class="error">${esc(err)}</div>` : ''}
 function dashboardPage(msg) {
   const cards = data.templates.map(t => {
     const ini = t.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    const avHtml = t.avatarImg
+    const avInner = t.avatarImg
       ? `<img src="${esc(t.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-      : `<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,${esc(t.pageColor1)},${esc(t.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">${ini}</div>`;
-    const imgHtml = t.cardImg
+      : `<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,${esc(t.pageColor1)},${esc(t.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">${ini}</div>`;
+    const imgInner = t.cardImg
       ? `<img src="${esc(t.cardImg)}" style="width:100%;height:100%;object-fit:cover;display:block">`
-      : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${esc(t.pageColor1)},${esc(t.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:32px">${esc(t.cardEmoji)}</div>`;
+      : `<div class="tcard-img-placeholder" style="background:linear-gradient(135deg,${esc(t.pageColor1)},${esc(t.pageColor2)})">${esc(t.cardEmoji)}</div>`;
+    const shortUrl = (t.redirectURL||'').replace(/^https?:\/\//,'').slice(0,40);
     return `
     <div class="tcard ${t.active ? 'live' : 'paused'}">
-      <div class="tcard-img">${imgHtml}
+      <div class="tcard-img">
+        ${imgInner}
         <div class="tcard-badge">${esc(t.cardBadge)}</div>
-        <div class="tcard-status" style="background:${t.active ? 'rgba(49,162,76,.85)' : 'rgba(0,0,0,.55)'}">${t.active ? '● Live' : '⏸ Paused'}</div>
+        <div class="tcard-status" style="background:${t.active ? 'rgba(49,162,76,.9)' : 'rgba(0,0,0,.5)'}">${t.active ? '● Live' : '⏸ Paused'}</div>
       </div>
-      <div class="tcard-body">
-        <div class="tcard-av">${avHtml}</div>
-        <div class="tcard-info">
+      <div class="tcard-info">
+        <div class="tcard-av">${avInner}</div>
+        <div style="min-width:0">
           <div class="tcard-name">${esc(t.name)}</div>
           <div class="tcard-page">${esc(t.pageName)}</div>
         </div>
       </div>
-      <div class="tcard-msg">${esc(t.message.slice(0,60))}${t.message.length>60?'…':''}</div>
-      <div class="tcard-title">${esc(t.cardTitle)}</div>
-      <div class="tcard-url"><span>→</span> ${esc((t.redirectURL||'').replace(/^https?:\/\//,'').slice(0,36))}</div>
-      <div class="tcard-link">Fan link: <a href="/?t=${esc(t.id)}" target="_blank">/?t=${esc(t.id)}</a></div>
+      <div class="tcard-details">
+        <div class="tcard-title">${esc(t.cardTitle)}</div>
+        <div class="tcard-desc">${esc(t.cardDesc)}</div>
+        <div class="tcard-url">→ ${esc(shortUrl)}</div>
+        <div class="tcard-link"><a href="/?t=${esc(t.id)}" target="_blank">/?t=${esc(t.id)}</a></div>
+      </div>
       <div class="tcard-actions">
-        <form method="POST" action="/admin/edit" style="flex:1"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
+        <form method="POST" action="/admin/edit" style="flex:1;display:flex"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
         <form method="POST" action="/admin/duplicate"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-dup" title="Duplicate">⧉</button></form>
-        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle ${t.active ? 'btn-toggle-live' : 'btn-toggle-off'}" title="${t.active ? 'Click to pause' : 'Click to set live'}">${t.active ? '● Live' : '▶ Set live'}</button></form>
-        <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete this template?')"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
+        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle ${t.active ? 'btn-toggle-live' : 'btn-toggle-off'}">${t.active ? '● Live' : '▶ Set live'}</button></form>
+        <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete?')"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
       </div>
     </div>`;
   }).join('');
@@ -498,31 +502,35 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 .topbar-right{display:flex;gap:10px;align-items:center}
 .main{max-width:1200px;margin:0 auto;padding:28px 20px 60px}
 .msg{background:#f0fff4;color:#166534;font-size:14px;padding:12px 16px;border-radius:10px;margin-bottom:24px;border:1px solid #bbf7d0;font-weight:500}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;margin-top:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;margin-top:20px}
 .tcard{background:#fff;border-radius:14px;border:2px solid #e4e6eb;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
-.tcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.tcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.1)}
 .tcard.live{border-color:#31a24c;box-shadow:0 0 0 3px rgba(49,162,76,.1)}
-.tcard.paused{opacity:.7}
-.tcard-img{height:160px;position:relative;overflow:hidden}
-.tcard-badge{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.9);color:#0084ff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.05em}
-.tcard-status{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px}
-.tcard-body{display:flex;align-items:center;gap:10px;padding:12px 14px 0}
-.tcard-av{width:38px;height:38px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2px solid #e4e6eb}
-.tcard-name{font-size:14px;font-weight:700;color:#050505}
-.tcard-page{font-size:11px;color:#65676b}
-.tcard-msg{font-size:12px;color:#65676b;padding:6px 14px 0;line-height:1.4}
-.tcard-title{font-size:13px;font-weight:700;color:#050505;padding:4px 14px 0}
-.tcard-url{font-size:11px;color:#0084ff;padding:3px 14px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tcard-url span{color:#8a8d91}
-.tcard-link{font-size:10px;color:#8a8d91;padding:4px 14px 8px}
+.tcard.paused{opacity:.65}
+.tcard-img{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;flex-shrink:0}
+.tcard-img img{width:100%;height:100%;object-fit:cover;display:block}
+.tcard-img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px}
+.tcard-badge{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.92);color:#0084ff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.05em}
+.tcard-status{position:absolute;top:8px;right:8px;color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px}
+.tcard-info{padding:10px 12px 6px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #f0f2f5}
+.tcard-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;overflow:hidden;border:2px solid #e4e6eb;background:#f0f2f5}
+.tcard-av img{width:100%;height:100%;object-fit:cover;display:block}
+.tcard-name{font-size:13px;font-weight:700;color:#050505;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard-page{font-size:11px;color:#65676b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard-details{padding:8px 12px;flex:1}
+.tcard-title{font-size:13px;font-weight:700;color:#050505;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard-desc{font-size:11px;color:#65676b;line-height:1.4;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tcard-url{font-size:10px;color:#0084ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard-link{font-size:10px;color:#8a8d91;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tcard-link a{color:#0084ff;text-decoration:none}
-.tcard-actions{display:flex;gap:6px;padding:10px 12px 12px;border-top:1px solid #f0f2f5;margin-top:auto}
-.btn-edit{flex:1;background:#0084ff;color:#fff;border:none;border-radius:8px;padding:8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-.btn-dup,.btn-toggle,.btn-del{height:34px;border:1.5px solid #e4e6eb;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:0 10px;display:flex;align-items:center;justify-content:center;font-family:inherit;white-space:nowrap}
-.btn-toggle-live{background:#31a24c;color:#fff;border-color:#31a24c}
-.btn-toggle-off{background:#fff;color:#444;border-color:#e4e6eb}
+.tcard-actions{display:flex;gap:6px;padding:8px 10px 10px;border-top:1px solid #f0f2f5}
+.btn-edit{flex:1;background:#0084ff;color:#fff;border:none;border-radius:8px;padding:8px 0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-dup{width:32px;height:32px;border:1.5px solid #e4e6eb;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0}
+.btn-toggle{height:32px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;padding:0 10px;display:flex;align-items:center;gap:4px;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.btn-toggle-live{background:#31a24c;color:#fff;border:none}
+.btn-toggle-off{background:#f0f2f5;color:#444;border:1.5px solid #e4e6eb}
 .btn-toggle-off:hover{background:#f0fff4;border-color:#31a24c;color:#31a24c}
-.btn-del{border-color:#ffd0d0;color:#c00}
+.btn-del{width:32px;height:32px;border:1.5px solid #ffd0d0;border-radius:8px;background:#fff0f0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:inherit;color:#c00;flex-shrink:0}
 .btn-new{background:#0084ff;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-out{background:#fff;color:#444;border:1.5px solid #e4e6eb;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center}
 .empty{text-align:center;padding:60px 20px;color:#8a8d91;font-size:15px}
@@ -624,7 +632,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 <body>
 <div class="topbar">
   <div class="logo">Lovely. <span style="font-size:12px;font-weight:500;color:#65676b">/ ${esc(tpl.name)}</span></div>
-  <a href="/admin" class="back-link">← Templates</a>
+  <a href="/admin" class="back-link">← Dashboard</a>
 </div>
 <div class="layout">
 <div class="form-col">
