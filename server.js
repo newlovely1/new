@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -32,7 +33,19 @@ const upload = multer({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use('/uploads', express.static(UPLOADS_DIR));
+
+// ── AUTH HELPER ───────────────────────────────────────────────
+function isAuth(req) {
+  return req.cookies && req.cookies.lv_pass === ADMIN_PASS;
+}
+function setAuth(res) {
+  res.cookie('lv_pass', ADMIN_PASS, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+}
+function clearAuth(res) {
+  res.clearCookie('lv_pass');
+}
 
 // ── TEMPLATE DEFAULTS ─────────────────────────────────────────
 function defaultTpl(id) {
@@ -120,35 +133,38 @@ app.get('/', (req, res) => {
 });
 
 // ── ADMIN: login ──────────────────────────────────────────────
-app.get('/admin', (req, res) => res.send(loginPage()));
+app.get('/admin', (req, res) => {
+  if (isAuth(req)) return res.send(dashboardPage());
+  res.send(loginPage());
+});
 app.post('/admin', (req, res) => {
   if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Wrong password.'));
-  res.send(dashboardPage(req.body.pass));
+  setAuth(res);
+  res.send(dashboardPage());
 });
 
 // ── ADMIN: new template ───────────────────────────────────────
 app.post('/admin/new', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = defaultTpl(uid());
   data.templates.push(tpl);
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ New template created. Edit it below.'));
+  res.send(editPage(tpl, '✅ New template created. Edit it below.'));
 });
 
 // ── ADMIN: edit form ──────────────────────────────────────────
 app.post('/admin/edit', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (!tpl) return res.redirect('/admin');
-  res.send(editPage(tpl, req.body.pass));
+  res.send(editPage(tpl));
 });
 
 // ── ADMIN: save template ──────────────────────────────────────
 app.post('/admin/save', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (!tpl) return res.redirect('/admin');
-  // Use req.body value always (allow empty strings), only fallback if field missing entirely
   const s = (key, fallback) => req.body[key] !== undefined ? req.body[key] : fallback;
   Object.assign(tpl, {
     name:        s('name', tpl.name)               || tpl.name,
@@ -168,83 +184,89 @@ app.post('/admin/save', (req, res) => {
     delay:       parseInt(s('delay', tpl.delay)) || 1800,
   });
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ Saved!'));
+  res.send(editPage(tpl, '✅ Saved!'));
 });
 
-// ── ADMIN: upload avatar for template ────────────────────────
+// ── ADMIN: upload avatar ──────────────────────────────────────
 app.post('/admin/avatar', upload.single('avatar'), (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
+  if (!isAuth(req)) return res.status(403).send('Unauthorized');
   const tpl = getTpl(req.body.id);
   if (!tpl || !req.file) return res.redirect('/admin');
   tpl.avatarImg = '/uploads/' + req.file.filename + '?v=' + Date.now();
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ Profile picture updated!'));
+  res.send(editPage(tpl, '✅ Profile picture updated!'));
 });
 
-// ── ADMIN: upload card image for template ─────────────────────
+// ── ADMIN: upload card image ──────────────────────────────────
 app.post('/admin/cardimg', upload.single('cardimg'), (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
+  if (!isAuth(req)) return res.status(403).send('Unauthorized');
   const tpl = getTpl(req.body.id);
   if (!tpl || !req.file) return res.redirect('/admin');
   tpl.cardImg = '/uploads/' + req.file.filename + '?v=' + Date.now();
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ Card image updated!'));
+  res.send(editPage(tpl, '✅ Card image updated!'));
 });
 
 // ── ADMIN: remove avatar ──────────────────────────────────────
 app.post('/admin/avatar/remove', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
+  if (!isAuth(req)) return res.status(403).send('Unauthorized');
   const tpl = getTpl(req.body.id);
   if (!tpl) return res.redirect('/admin');
   tpl.avatarImg = '';
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ Avatar removed.'));
+  res.send(editPage(tpl, '✅ Avatar removed.'));
 });
 
 // ── ADMIN: remove card image ──────────────────────────────────
 app.post('/admin/cardimg/remove', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
+  if (!isAuth(req)) return res.status(403).send('Unauthorized');
   const tpl = getTpl(req.body.id);
   if (!tpl) return res.redirect('/admin');
   tpl.cardImg = '';
   saveData();
-  res.send(editPage(tpl, req.body.pass, '✅ Card image removed.'));
+  res.send(editPage(tpl, '✅ Card image removed.'));
 });
 
 // ── ADMIN: toggle active ──────────────────────────────────────
 app.post('/admin/toggle', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (tpl) { tpl.active = !tpl.active; saveData(); }
-  res.send(dashboardPage(req.body.pass, tpl ? (tpl.active ? '✅ Template activated.' : '⏸ Template paused.') : ''));
+  res.send(dashboardPage(tpl ? (tpl.active ? '✅ Template activated.' : '⏸ Template paused.') : ''));
 });
 
 // ── ADMIN: delete template ────────────────────────────────────
 app.post('/admin/delete', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   data.templates = data.templates.filter(t => t.id !== req.body.id);
   saveData();
-  res.send(dashboardPage(req.body.pass, '🗑 Template deleted.'));
+  res.send(dashboardPage('🗑 Template deleted.'));
 });
 
 // ── ADMIN: duplicate template ─────────────────────────────────
 app.post('/admin/duplicate', (req, res) => {
-  if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
+  if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (tpl) {
     const copy = { ...tpl, id: uid(), name: tpl.name + ' (copy)' };
     data.templates.push(copy);
     saveData();
   }
-  res.send(dashboardPage(req.body.pass, '✅ Template duplicated.'));
+  res.send(dashboardPage('✅ Template duplicated.'));
 });
 
-// ── ADMIN: export data (for Railway INITIAL_CONFIG backup) ───
+// ── ADMIN: export ─────────────────────────────────────────────
 app.get('/admin/export', (req, res) => {
-  if (req.query.pass !== ADMIN_PASS) return res.status(403).send('Add ?pass=yourpassword to the URL');
+  if (!isAuth(req) && req.query.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', 'attachment; filename="lovely-backup.json"');
   res.send(JSON.stringify(data, null, 2));
+});
+
+// ── ADMIN: logout ─────────────────────────────────────────────
+app.get('/admin/logout', (req, res) => {
+  clearAuth(res);
+  res.redirect('/admin');
 });
 
 // ── START ─────────────────────────────────────────────────────
@@ -418,7 +440,7 @@ ${err ? `<div class="error">${esc(err)}</div>` : ''}
 // =============================================================
 // DASHBOARD PAGE — template grid
 // =============================================================
-function dashboardPage(pass, msg) {
+function dashboardPage(msg) {
   const cards = data.templates.map(t => {
     const ini = t.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const avHtml = t.avatarImg
@@ -445,10 +467,10 @@ function dashboardPage(pass, msg) {
       <div class="tcard-url"><span>→</span> ${esc((t.redirectURL||'').replace(/^https?:\/\//,'').slice(0,36))}</div>
       <div class="tcard-link">Fan link: <a href="/?t=${esc(t.id)}" target="_blank">/?t=${esc(t.id)}</a></div>
       <div class="tcard-actions">
-        <form method="POST" action="/admin/edit" style="flex:1"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
-        <form method="POST" action="/admin/duplicate"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-dup" title="Duplicate">⧉</button></form>
-        <form method="POST" action="/admin/toggle"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle" title="${t.active ? 'Pause' : 'Activate'}">${t.active ? '⏸' : '▶'}</button></form>
-        <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete this template?')"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
+        <form method="POST" action="/admin/edit" style="flex:1"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
+        <form method="POST" action="/admin/duplicate"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-dup" title="Duplicate">⧉</button></form>
+        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle" title="${t.active ? 'Pause' : 'Activate'}">${t.active ? '⏸' : '▶'}</button></form>
+        <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete this template?')"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
       </div>
     </div>`;
   }).join('');
@@ -491,8 +513,9 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 <div class="topbar">
   <div class="logo">Lovely.</div>
   <div class="topbar-right">
+    <a href="/admin/logout" class="btn-out">Logout</a>
     <a href="/" target="_blank" class="btn-out">Open fan page ↗</a>
-    <form method="POST" action="/admin/new" style="display:inline"><input type="hidden" name="pass" value="${esc(pass)}"><button type="submit" class="btn-new">+ New template</button></form>
+    <form method="POST" action="/admin/new" style="display:inline"><button type="submit" class="btn-new">+ New template</button></form>
   </div>
 </div>
 <div class="main">
@@ -510,7 +533,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 // =============================================================
 // EDIT PAGE — compact single template editor
 // =============================================================
-function editPage(tpl, pass, msg) {
+function editPage(tpl, msg) {
   const ini = tpl.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const avHtml = tpl.avatarImg
     ? `<img src="${esc(tpl.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
@@ -588,7 +611,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 <div class="form-col">
   ${msg ? `<div class="toast">${esc(msg)}</div>` : ''}
   <form method="POST" action="/admin/save">
-  <input type="hidden" name="pass" value="${esc(pass)}">
+  
   <input type="hidden" name="id" value="${esc(tpl.id)}">
 
   <table class="tbl">
@@ -600,10 +623,10 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
       <div class="img-row">
         <div class="av-thumb">${avHtml}</div>
         <form method="POST" action="/admin/avatar" enctype="multipart/form-data" style="display:inline">
-          <input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}">
+          <input type="hidden" name="id" value="${esc(tpl.id)}">
           <label class="up-btn">📷 Upload<input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
         </form>
-        ${tpl.avatarImg ? `<form method="POST" action="/admin/avatar/remove" style="display:inline"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
+        ${tpl.avatarImg ? `<form method="POST" action="/admin/avatar/remove" style="display:inline"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
       </div>
     </td></tr>
     <tr><td colspan="2" class="sec-hdr">💬 Message</td></tr>
@@ -616,10 +639,10 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
       <div class="img-row" style="margin-bottom:6px">
         <div class="sq-thumb">${cardPreviewHtml}</div>
         <form method="POST" action="/admin/cardimg" enctype="multipart/form-data" style="display:inline">
-          <input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}">
+          <input type="hidden" name="id" value="${esc(tpl.id)}">
           <label class="up-btn">🖼 Upload<input type="file" name="cardimg" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
         </form>
-        ${tpl.cardImg ? `<form method="POST" action="/admin/cardimg/remove" style="display:inline"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
+        ${tpl.cardImg ? `<form method="POST" action="/admin/cardimg/remove" style="display:inline"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
       </div>
       <input type="url" name="cardImg" value="${esc(tpl.cardImg)}" placeholder="or paste image URL here…">
     </td></tr>
