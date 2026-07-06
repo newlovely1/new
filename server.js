@@ -147,8 +147,7 @@ function fanPage(c) {
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#e9ebee;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;-webkit-font-smoothing:antialiased}
 .phone{width:100%;max-width:390px;border-radius:40px;background:#1c1c1e;border:8px solid #1c1c1e;overflow:hidden;box-shadow:0 50px 100px rgba(0,0,0,.28),0 20px 40px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.08)}
-.status-bar{background:${esc(c.pageColor1)};display:flex;justify-content:space-between;align-items:center;padding:10px 18px 8px;font-size:13px;font-weight:600;color:#fff}
-.status-right{display:flex;align-items:center;gap:5px;font-size:12px}
+.status-bar{display:none}
 .chat-header{background:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e4e6eb}
 .back-arrow{color:${esc(c.pageColor1)};font-size:24px;font-weight:300;cursor:pointer;flex-shrink:0}
 .hdr-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;position:relative;background:${grad}}
@@ -202,19 +201,12 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .overlay-sub{font-size:14px;color:#65676b;margin-bottom:20px;line-height:1.5}
 .overlay-btn{display:block;width:100%;background:${esc(c.pageColor1)};color:#fff;font-size:15px;font-weight:700;border:none;border-radius:12px;padding:13px 0;cursor:pointer;font-family:inherit;text-decoration:none;margin-bottom:10px}
 .overlay-cancel{display:block;width:100%;background:#f0f2f5;color:#050505;font-size:15px;font-weight:600;border:none;border-radius:12px;padding:13px 0;cursor:pointer;font-family:inherit}
-@media(max-width:430px){body{padding:0;align-items:flex-start;background:#fff}.phone{border-radius:0;border:none;box-shadow:none;max-width:100%;min-height:100vh}.chat-body{min-height:calc(100vh - 200px)}}
+@media(max-width:430px){body{padding:0;align-items:flex-start;background:#fff}.phone{border-radius:0;border:none;box-shadow:none;max-width:100%;width:100%;min-height:100vh;min-height:100dvh}.chat-header{padding-top:12px}.chat-body{min-height:calc(100dvh - 130px)}.input-bar{position:sticky;bottom:0}}
 </style>
 </head>
 <body>
 <div class="phone">
-  <div class="status-bar">
-    <span id="clk">9:41</span>
-    <div class="status-right">
-      <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity="0.3"/></svg>
-      <span>5G</span>
-      <svg width="25" height="12" viewBox="0 0 25 12" fill="white"><rect x="0" y="1" width="21" height="10" rx="2" stroke="white" stroke-width="1.2" fill="none"/><rect x="1.5" y="2.5" width="17" height="7" rx="1.2" fill="white"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="white" opacity="0.5"/></svg>
-    </div>
-  </div>
+
   <div class="chat-header">
     <div class="back-arrow">&#8249;</div>
     <div class="hdr-avatar">${ini}<div class="active-dot"></div></div>
@@ -272,8 +264,6 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 </div>
 <script>
 (function(){
-  function tick(){var d=new Date(),h=d.getHours(),m=d.getMinutes();document.getElementById('clk').textContent=h+':'+(m<10?'0':'')+m;}
-  tick();setInterval(tick,30000);
   var now=new Date();
   var t=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   document.getElementById('dsep').textContent='Today at '+t;
@@ -482,7 +472,7 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
     <div class="section">
       <div class="section-title"><span>🔗</span> Your fan page URL</div>
       <div class="hint" style="margin-bottom:8px">Share this link in your Messenger broadcasts. No parameters needed — it uses the config above.</div>
-      <div class="url-box" id="urlBox"><strong>${req ? '' : 'https://your-app.railway.app'}/</strong></div>
+      <div class="url-box" id="urlBox"><strong>https://your-app.railway.app/</strong></div>
       <div class="hint" style="margin-top:8px">You can still override any field per-broadcast using URL params (e.g. ?title=New+Offer&url=...)</div>
     </div>
 
