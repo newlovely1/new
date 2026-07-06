@@ -1,20 +1,46 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const ADMIN_PASS = process.env.ADMIN_PASS || 'lovely123';
 const CONFIG_FILE = path.join(__dirname, 'config.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+// Ensure uploads dir exists
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+
+// Multer — store avatar as avatar.jpg always
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, 'avatar' + ext);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Images only'));
+  }
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // ── DEFAULT CONFIG ────────────────────────────────────────────
 const DEFAULT_CONFIG = {
   pageName:    'Lovely Page',
   pageColor1:  '#0084ff',
   pageColor2:  '#44bec7',
+  avatarImg:   '',
   message:     'Hey! We have a special offer 🎉',
   cardTitle:   '50% Off Today Only',
   cardDesc:    "Exclusive deal for our fans. Don't miss out — offer ends at midnight!",
@@ -138,6 +164,26 @@ app.post('/admin/save', (req, res) => {
   res.send(adminDashboard(config, '✅ Saved! Your fan page is updated.', req.body.pass));
 });
 
+// ── ADMIN: upload avatar ──────────────────────────────────────
+app.post('/admin/avatar', upload.single('avatar'), (req, res) => {
+  if (req.body.pass !== ADMIN_PASS) {
+    return res.status(403).send('Unauthorized');
+  }
+  if (!req.file) return res.status(400).send('No file');
+  const ext = path.extname(req.file.filename).toLowerCase();
+  config.avatarImg = '/uploads/avatar' + ext + '?v=' + Date.now();
+  saveConfig(config);
+  res.send(adminDashboard(config, '✅ Profile picture updated!', req.body.pass));
+});
+
+// ── ADMIN: remove avatar ──────────────────────────────────────
+app.post('/admin/avatar/remove', (req, res) => {
+  if (req.body.pass !== ADMIN_PASS) return res.status(403).send('Unauthorized');
+  config.avatarImg = '';
+  saveConfig(config);
+  res.send(adminDashboard(config, '✅ Profile picture removed.', req.body.pass));
+});
+
 // ── START ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Lovely running on port ${PORT}`);
@@ -152,6 +198,14 @@ function fanPage(c) {
   const ini = c.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const grad = `linear-gradient(135deg,${c.pageColor1} 0%,${c.pageColor2} 100%)`;
   const chips = c.chips ? c.chips.split(',').filter(x=>x.trim()) : [];
+
+  // Avatar — image if set, else initials
+  const avatarInner = c.avatarImg
+    ? `<img src="${esc(c.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none'">`
+    : ini;
+  const msgAvatarInner = c.avatarImg
+    ? `<img src="${esc(c.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none'">`
+    : ini;
 
   const cardImgHtml = c.cardImg
     ? `<img src="${esc(c.cardImg)}" alt="offer" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">
@@ -231,7 +285,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 
   <div class="chat-header">
     <div class="back-arrow">&#8249;</div>
-    <div class="hdr-avatar">${ini}<div class="active-dot"></div></div>
+    <div class="hdr-avatar">${avatarInner}<div class="active-dot"></div></div>
     <div style="flex:1;min-width:0">
       <div class="hdr-name">${esc(c.pageName)}</div>
       <div class="hdr-status">Active now</div>
@@ -244,12 +298,12 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
   <div class="chat-body">
     <div class="date-sep" id="dsep">Today</div>
     <div class="typing" id="typ">
-      <div class="msg-avatar">${ini}</div>
+      <div class="msg-avatar">${msgAvatarInner}</div>
       <div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
     </div>
     <div id="msgs" style="display:none">
       <div class="msg-row in">
-        <div class="msg-avatar">${ini}</div>
+        <div class="msg-avatar">${msgAvatarInner}</div>
         <div class="bubble in">${esc(c.message)}</div>
       </div>
       <div class="card-wrap">
@@ -353,6 +407,9 @@ function adminDashboard(cfg, success, pass) {
   const cardImgHtml = cfg.cardImg
     ? `<img src="${esc(cfg.cardImg)}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
     : `<div style="font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%">${esc(cfg.cardEmoji)}</div>`;
+  const previewAvatar = cfg.avatarImg
+    ? `<img src="${esc(cfg.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block">`
+    : ini;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -390,6 +447,12 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
 .save-btn:hover{opacity:.9}
 .url-box{background:#f7f8fa;border:1px solid #e4e6eb;border-radius:9px;padding:10px 13px;font-size:12px;color:#333;word-break:break-all;flex:1}
 .url-box strong{color:#0084ff}
+.avatar-upload-row{display:flex;align-items:center;gap:16px;margin-top:4px}
+.avatar-preview{width:64px;height:64px;border-radius:50%;border:2px solid #e4e6eb;flex-shrink:0;overflow:hidden;background:#f0f2f5}
+.file-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0f2f5;border-radius:8px;font-size:13px;font-weight:600;color:#333;cursor:pointer;transition:background .15s;border:1.5px solid #dddfe2}
+.file-btn:hover{background:#e4e6eb}
+.remove-btn{padding:8px 12px;background:#fff0f0;border-radius:8px;font-size:13px;font-weight:600;color:#c00;cursor:pointer;border:1.5px solid #ffd0d0;transition:background .15s;font-family:inherit}
+.remove-btn:hover{background:#ffe4e4}
 /* ── MINI PHONE ── */
 .mini-phone{width:240px;border-radius:28px;background:#1c1c1e;border:6px solid #1c1c1e;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,.22)}
 .mp-header{background:#fff;padding:8px 10px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #e4e6eb}
@@ -447,12 +510,38 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
           <div class="field">
             <label>Avatar color 1</label>
             <input type="color" name="pageColor1" value="${esc(cfg.pageColor1)}">
-            <div class="hint">Gradient start</div>
+            <div class="hint">Gradient start (used if no photo)</div>
           </div>
           <div class="field">
             <label>Avatar color 2</label>
             <input type="color" name="pageColor2" value="${esc(cfg.pageColor2)}">
             <div class="hint">Gradient end</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Profile picture</label>
+          <div class="avatar-upload-row">
+            <div class="avatar-preview" id="avPreview">
+              ${cfg.avatarImg
+                ? `<img src="${esc(cfg.avatarImg)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+                : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${esc(cfg.pageColor1)},${esc(cfg.pageColor2)});border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff">${esc(cfg.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2))}</div>`
+              }
+            </div>
+            <div style="flex:1">
+              <form method="POST" action="/admin/avatar" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="hidden" name="pass" value="${esc(pass||'')}">
+                <label class="file-btn">
+                  📷 Choose photo
+                  <input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none">
+                </label>
+                ${cfg.avatarImg ? `
+                <form method="POST" action="/admin/avatar/remove" style="display:inline">
+                  <input type="hidden" name="pass" value="${esc(pass||'')}">
+                  <button type="submit" class="remove-btn">✕ Remove</button>
+                </form>` : ''}
+              </form>
+              <div class="hint" style="margin-top:8px">JPG, PNG, GIF — max 5MB. Replaces the initials circle.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -540,7 +629,7 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
     <div class="mini-phone">
       <div style="background:${esc(cfg.pageColor1)};height:6px"></div>
       <div class="mp-header">
-        <div class="mp-av">${ini}<div class="mp-dot"></div></div>
+        <div class="mp-av">${previewAvatar}<div class="mp-dot"></div></div>
         <div>
           <div class="mp-name">${esc(cfg.pageName)}</div>
           <div class="mp-stat">Active now</div>
