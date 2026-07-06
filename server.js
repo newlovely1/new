@@ -231,8 +231,22 @@ app.post('/admin/cardimg/remove', (req, res) => {
 app.post('/admin/toggle', (req, res) => {
   if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
-  if (tpl) { tpl.active = !tpl.active; saveData(); }
-  res.send(dashboardPage(tpl ? (tpl.active ? '✅ Template activated.' : '⏸ Template paused.') : ''));
+  if (tpl) {
+    if (!tpl.active) {
+      // Activating this one — deactivate all others first
+      data.templates.forEach(t => t.active = false);
+      tpl.active = true;
+      saveData();
+      res.send(dashboardPage('✅ "' + tpl.name + '" is now live. All others paused.'));
+    } else {
+      // Deactivating
+      tpl.active = false;
+      saveData();
+      res.send(dashboardPage('⏸ "' + tpl.name + '" paused. No template is currently live.'));
+    }
+  } else {
+    res.send(dashboardPage(''));
+  }
 });
 
 // ── ADMIN: delete template ────────────────────────────────────
@@ -357,9 +371,9 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 <body>
 <div class="phone">
   <div class="chat-header">
-    <div class="back-arrow">&#8249;</div>
-    <div class="hdr-avatar">${avatarInner}<div class="active-dot"></div></div>
-    <div style="flex:1;min-width:0">
+    <div class="back-arrow" onclick="go()">&#8249;</div>
+    <div class="hdr-avatar" onclick="go()" style="cursor:pointer">${avatarInner}<div class="active-dot"></div></div>
+    <div style="flex:1;min-width:0;cursor:pointer" onclick="go()">
       <div class="hdr-name">${esc(c.pageName)}</div>
       <div class="hdr-status">Active now</div>
     </div>
@@ -450,10 +464,10 @@ function dashboardPage(msg) {
       ? `<img src="${esc(t.cardImg)}" style="width:100%;height:100%;object-fit:cover;display:block">`
       : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${esc(t.pageColor1)},${esc(t.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:32px">${esc(t.cardEmoji)}</div>`;
     return `
-    <div class="tcard ${t.active ? '' : 'paused'}">
+    <div class="tcard ${t.active ? 'live' : 'paused'}">
       <div class="tcard-img">${imgHtml}
         <div class="tcard-badge">${esc(t.cardBadge)}</div>
-        <div class="tcard-status">${t.active ? '● Live' : '⏸ Paused'}</div>
+        <div class="tcard-status" style="background:${t.active ? 'rgba(49,162,76,.85)' : 'rgba(0,0,0,.55)'}">${t.active ? '● Live' : '⏸ Paused'}</div>
       </div>
       <div class="tcard-body">
         <div class="tcard-av">${avHtml}</div>
@@ -469,7 +483,7 @@ function dashboardPage(msg) {
       <div class="tcard-actions">
         <form method="POST" action="/admin/edit" style="flex:1"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
         <form method="POST" action="/admin/duplicate"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-dup" title="Duplicate">⧉</button></form>
-        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle" title="${t.active ? 'Pause' : 'Activate'}">${t.active ? '⏸' : '▶'}</button></form>
+        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle ${t.active ? 'btn-toggle-live' : 'btn-toggle-off'}" title="${t.active ? 'Click to pause' : 'Click to set live'}">${t.active ? '● Live' : '▶ Set live'}</button></form>
         <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete this template?')"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
       </div>
     </div>`;
@@ -485,9 +499,10 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 .main{max-width:1200px;margin:0 auto;padding:28px 20px 60px}
 .msg{background:#f0fff4;color:#166534;font-size:14px;padding:12px 16px;border-radius:10px;margin-bottom:24px;border:1px solid #bbf7d0;font-weight:500}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;margin-top:24px}
-.tcard{background:#fff;border-radius:14px;border:1.5px solid #e4e6eb;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
+.tcard{background:#fff;border-radius:14px;border:2px solid #e4e6eb;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
 .tcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.08)}
-.tcard.paused{opacity:.6}
+.tcard.live{border-color:#31a24c;box-shadow:0 0 0 3px rgba(49,162,76,.1)}
+.tcard.paused{opacity:.7}
 .tcard-img{height:160px;position:relative;overflow:hidden}
 .tcard-badge{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.9);color:#0084ff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.05em}
 .tcard-status{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px}
@@ -503,7 +518,10 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 .tcard-link a{color:#0084ff;text-decoration:none}
 .tcard-actions{display:flex;gap:6px;padding:10px 12px 12px;border-top:1px solid #f0f2f5;margin-top:auto}
 .btn-edit{flex:1;background:#0084ff;color:#fff;border:none;border-radius:8px;padding:8px 0;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-.btn-dup,.btn-toggle,.btn-del{width:34px;height:34px;border:1.5px solid #e4e6eb;border-radius:8px;background:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.btn-dup,.btn-toggle,.btn-del{height:34px;border:1.5px solid #e4e6eb;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:0 10px;display:flex;align-items:center;justify-content:center;font-family:inherit;white-space:nowrap}
+.btn-toggle-live{background:#31a24c;color:#fff;border-color:#31a24c}
+.btn-toggle-off{background:#fff;color:#444;border-color:#e4e6eb}
+.btn-toggle-off:hover{background:#f0fff4;border-color:#31a24c;color:#31a24c}
 .btn-del{border-color:#ffd0d0;color:#c00}
 .btn-new{background:#0084ff;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-out{background:#fff;color:#444;border:1.5px solid #e4e6eb;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center}
@@ -520,8 +538,9 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 </div>
 <div class="main">
   ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
-  <div style="display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div style="font-size:20px;font-weight:800;color:#111">Templates <span style="font-size:14px;font-weight:500;color:#8a8d91">(${data.templates.length})</span></div>
+    ${(()=>{const live=data.templates.find(t=>t.active);return live?`<div style="font-size:12px;font-weight:600;color:#31a24c;background:#f0fff4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0">● Live: ${esc(live.name)}</div>`:`<div style="font-size:12px;font-weight:600;color:#8a8d91;background:#f7f8fa;padding:5px 12px;border-radius:20px;border:1px solid #e4e6eb">No template live</div>`})()}
   </div>
   ${data.templates.length === 0
     ? '<div class="empty">No templates yet.<br>Click "+ New template" to create your first one.</div>'
