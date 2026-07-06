@@ -145,8 +145,8 @@ function fanPage(c) {
 <meta name="theme-color" content="${esc(c.pageColor1)}">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#e9ebee;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;-webkit-font-smoothing:antialiased}
-.phone{width:100%;max-width:390px;border-radius:40px;background:#1c1c1e;border:8px solid #1c1c1e;overflow:hidden;box-shadow:0 50px 100px rgba(0,0,0,.28),0 20px 40px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.08)}
+html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#fff;-webkit-font-smoothing:antialiased}
+.phone{width:100%;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 .status-bar{display:none}
 .chat-header{background:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e4e6eb}
 .back-arrow{color:${esc(c.pageColor1)};font-size:24px;font-weight:300;cursor:pointer;flex-shrink:0}
@@ -157,7 +157,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .hdr-actions{display:flex;gap:10px;flex-shrink:0}
 .hdr-icon{width:34px;height:34px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hdr-icon svg{width:18px;height:18px;fill:${esc(c.pageColor1)}}
-.chat-body{background:#fff;padding:14px 0 8px;min-height:420px}
+.chat-body{background:#fff;padding:14px 0 8px;flex:1}
 .date-sep{text-align:center;font-size:11px;color:#8a8d91;padding:4px 0 12px}
 .msg-row{display:flex;align-items:flex-end;gap:8px;padding:2px 12px}
 .msg-row.in{justify-content:flex-start}
@@ -165,7 +165,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .bubble{max-width:72%;font-size:15px;line-height:1.45;padding:9px 14px;border-radius:18px;word-break:break-word}
 .bubble.in{background:#f0f2f5;color:#050505;border-bottom-left-radius:4px}
 .card-wrap{padding:6px 12px 6px 48px}
-.tpl-card{border-radius:16px;border:1px solid #dddfe2;overflow:hidden;background:#fff;max-width:280px;cursor:pointer}
+.tpl-card{border-radius:16px;border:1px solid #dddfe2;overflow:hidden;background:#fff;max-width:80%;cursor:pointer}
 .tpl-card:active{transform:scale(.98)}
 .card-image{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:${grad}}
 .card-badge{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);color:${esc(c.pageColor1)};font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
@@ -181,7 +181,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .qr-row{display:flex;gap:8px;padding:6px 12px 4px 48px;flex-wrap:wrap}
 .qr-chip{font-size:13px;font-weight:600;color:${esc(c.pageColor1)};border:1.5px solid ${esc(c.pageColor1)};border-radius:20px;padding:6px 14px;cursor:pointer;background:#fff;white-space:nowrap;font-family:inherit}
 .seen-row{text-align:right;padding:5px 14px 8px;font-size:11px;color:#8a8d91}
-.input-bar{background:#fff;border-top:1px solid #e4e6eb;padding:10px 12px;display:flex;align-items:center;gap:9px}
+.input-bar{background:#fff;border-top:1px solid #e4e6eb;padding:10px 12px;display:flex;align-items:center;gap:9px;position:sticky;bottom:0}
 .input-icon-btn{width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:20px;color:${esc(c.pageColor1)}}
 .input-field{flex:1;background:#f0f2f5;border-radius:22px;padding:9px 16px;font-size:15px;color:#8a8d91;pointer-events:none;user-select:none}
 .send-btn{width:36px;height:36px;border-radius:50%;background:${esc(c.pageColor1)};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
@@ -192,8 +192,6 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .typing-dot:nth-child(2){animation-delay:.15s}
 .typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
-
-@media(max-width:430px){body{padding:0;align-items:flex-start;background:#fff}.phone{border-radius:0;border:none;box-shadow:none;max-width:100%;width:100%;min-height:100vh;min-height:100dvh}.chat-header{padding-top:12px}.chat-body{min-height:calc(100dvh - 130px)}.input-bar{position:sticky;bottom:0}}
 </style>
 </head>
 <body>
