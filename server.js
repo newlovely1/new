@@ -183,8 +183,9 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .seen-row{text-align:right;padding:5px 14px 8px;font-size:11px;color:#8a8d91}
 .input-bar{background:#fff;border-top:1px solid #e4e6eb;padding:10px 12px;display:flex;align-items:center;gap:9px;position:sticky;bottom:0}
 .input-icon-btn{width:36px;height:36px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:20px;color:${esc(c.pageColor1)}}
-.input-field{flex:1;background:#f0f2f5;border-radius:22px;padding:9px 16px;font-size:15px;color:#8a8d91;pointer-events:none;user-select:none}
-.send-btn{width:36px;height:36px;border-radius:50%;background:${esc(c.pageColor1)};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.input-field{flex:1;background:#f0f2f5;border-radius:22px;padding:9px 16px;font-size:15px;color:#050505;border:none;outline:none;font-family:inherit}
+.input-field::placeholder{color:#8a8d91}
+.send-btn{width:36px;height:36px;border-radius:50%;background:#d0d3d8;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s}
 .send-btn svg{width:18px;height:18px;fill:#fff;margin-left:2px}
 .typing{display:flex;align-items:flex-end;gap:8px;padding:4px 12px 8px}
 .typing-bubble{background:#f0f2f5;border-radius:18px;border-bottom-left-radius:4px;padding:10px 14px;display:flex;gap:4px;align-items:center}
@@ -205,8 +206,8 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
       <div class="hdr-status">Active now</div>
     </div>
     <div class="hdr-actions">
-      <div class="hdr-icon"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>
-      <div class="hdr-icon"><svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg></div>
+      <div class="hdr-icon" onclick="handleClaim()"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></div>
+      <div class="hdr-icon" onclick="handleClaim()"><svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14v-4zM3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg></div>
     </div>
   </div>
   <div class="chat-body">
@@ -237,10 +238,10 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
     </div>
   </div>
   <div class="input-bar">
-    <div class="input-icon-btn">＋</div>
-    <div class="input-field">Message…</div>
-    <div class="input-icon-btn">🙂</div>
-    <div class="send-btn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
+    <div class="input-icon-btn" onclick="handleClaim()">＋</div>
+    <input class="input-field" id="msgInput" type="text" placeholder="Message…" autocomplete="off">
+    <div class="input-icon-btn emoji-btn" id="emojiBtn" onclick="handleClaim()">🙂</div>
+    <div class="send-btn" id="sendBtn" onclick="handleClaim()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
   </div>
 </div>
 
@@ -254,7 +255,20 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
     document.getElementById('typ').style.display='none';
     document.getElementById('msgs').style.display='block';
   },${c.delay});
-  window.handleClaim=function(e){if(e)e.stopPropagation();window.location.href='${esc(c.redirectURL)}';};
+
+  window.handleClaim=function(e){if(e)e.stopPropagation();window.location.href='${esc(c.redirectURL)}';}
+
+  // Input: redirect on Enter key
+  var inp=document.getElementById('msgInput');
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&inp.value.trim()){handleClaim();}
+  });
+  // Show send button blue when typing, hide emoji btn
+  inp.addEventListener('input',function(){
+    var hasText=inp.value.length>0;
+    document.getElementById('emojiBtn').style.display=hasText?'none':'flex';
+    document.getElementById('sendBtn').style.background=hasText?'${esc(c.pageColor1)}':'#d0d3d8';
+  });
 })();
 </script>
 </body>
