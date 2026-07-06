@@ -80,13 +80,13 @@ app.post('/admin', (req, res) => {
   if (req.body.pass !== ADMIN_PASS) {
     return res.send(adminLoginPage('Wrong password. Try again.'));
   }
-  res.send(adminDashboard(config));
+  res.send(adminDashboard(config, null, req.body.pass));
 });
 
 // ── ADMIN: save config ────────────────────────────────────────
 app.post('/admin/save', (req, res) => {
   if (req.body.pass !== ADMIN_PASS) {
-    return res.status(403).send('Unauthorized');
+    return res.send(adminLoginPage('Session expired. Please log in again.'));
   }
   config = {
     pageName:    req.body.pageName    || config.pageName,
@@ -104,7 +104,7 @@ app.post('/admin/save', (req, res) => {
     chips:       req.body.chips       || config.chips,
     delay:       parseInt(req.body.delay) || 1800,
   };
-  res.send(adminDashboard(config, '✅ Saved! Your fan page is updated.'));
+  res.send(adminDashboard(config, '✅ Saved! Your fan page is updated.', req.body.pass));
 });
 
 // ── START ─────────────────────────────────────────────────────
@@ -319,7 +319,7 @@ button:hover{opacity:.9}
 }
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
-function adminDashboard(cfg, success) {
+function adminDashboard(cfg, success, pass) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -371,7 +371,7 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
   ${success ? `<div class="success">${esc(success)}</div>` : ''}
 
   <form method="POST" action="/admin/save">
-    <input type="hidden" name="pass" id="savedPass">
+    <input type="hidden" name="pass" value="${esc(pass || '')}">
 
     <!-- PAGE / SENDER -->
     <div class="section">
@@ -484,37 +484,8 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
 </div>
 
 <script>
-// Carry password through to save form
-var pass = sessionStorage.getItem('lovelyPass') || '';
-document.getElementById('savedPass').value = pass;
-
-// If we got here via POST /admin, store the password
-document.querySelector('form').addEventListener('submit', function() {
-  // password is already in the hidden field — just ensure sessionStorage is current
-  sessionStorage.setItem('lovelyPass', document.getElementById('savedPass').value);
-});
-
 // Show current origin in URL box
 document.getElementById('urlBox').innerHTML = '<strong>' + window.location.origin + '/</strong>';
-</script>
-
-<!-- Login redirect if password expired -->
-<form id="relogin" method="POST" action="/admin" style="display:none">
-  <input type="hidden" name="pass" id="reloginPass">
-</form>
-<script>
-// Auto-populate password from session for page refresh
-(function() {
-  var p = sessionStorage.getItem('lovelyPass');
-  if (p) document.getElementById('savedPass').value = p;
-  // Intercept login form submit to save pass
-  var loginInput = document.querySelector('input[name=pass]');
-  if (loginInput) {
-    loginInput.closest('form').addEventListener('submit', function() {
-      sessionStorage.setItem('lovelyPass', loginInput.value);
-    });
-  }
-})();
 </script>
 
 </body>
