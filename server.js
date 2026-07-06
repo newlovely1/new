@@ -58,13 +58,32 @@ function defaultTpl(id) {
 
 // ── LOAD / SAVE ───────────────────────────────────────────────
 function loadData() {
+  // 1. Try data.json file first (saved by admin panel)
   try {
     if (fs.existsSync(DATA_FILE)) {
       const d = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      if (d.templates && d.templates.length) return d;
+      if (d.templates && d.templates.length) {
+        console.log('✅ Data loaded from data.json');
+        return d;
+      }
     }
   } catch(e) { console.log('data.json read error:', e.message); }
-  // seed one default template
+
+  // 2. Try INITIAL_CONFIG env var (set in Railway variables — survives redeploys)
+  try {
+    if (process.env.INITIAL_CONFIG) {
+      const d = JSON.parse(process.env.INITIAL_CONFIG);
+      if (d.templates && d.templates.length) {
+        console.log('✅ Data loaded from INITIAL_CONFIG env var');
+        // Write to disk so future restarts use file
+        fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2), 'utf8');
+        return d;
+      }
+    }
+  } catch(e) { console.log('INITIAL_CONFIG parse error:', e.message); }
+
+  // 3. Seed one blank template
+  console.log('ℹ️  Starting with blank template');
   return { templates: [defaultTpl('tpl_' + Date.now())] };
 }
 function saveData() {
@@ -214,6 +233,14 @@ app.post('/admin/duplicate', (req, res) => {
     saveData();
   }
   res.send(dashboardPage(req.body.pass, '✅ Template duplicated.'));
+});
+
+// ── ADMIN: export data (for Railway INITIAL_CONFIG backup) ───
+app.get('/admin/export', (req, res) => {
+  if (req.query.pass !== ADMIN_PASS) return res.status(403).send('Add ?pass=yourpassword to the URL');
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename="lovely-backup.json"');
+  res.send(JSON.stringify(data, null, 2));
 });
 
 // ── START ─────────────────────────────────────────────────────
