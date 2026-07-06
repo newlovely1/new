@@ -56,18 +56,18 @@ function defaultTpl(id) {
     pageColor1:  '#0084ff',
     pageColor2:  '#44bec7',
     avatarImg:   '',
-    message:     'Hey! I sent you something special 🎉',
-    cardTitle:   'Check this out',
-    cardDesc:    'Tap below to see more.',
+    message:     'You and Susan are a match ❤️',
+    cardTitle:   'Susan 64 💝',
+    cardDesc:    "I'm divorced. Would that stop you from saying hello? 💔",
     cardBadge:   'New',
-    cardEmoji:   '🎁',
+    cardEmoji:   '💝',
     cardImg:     '',
-    btn1Label:   'See more →',
+    btn1Label:   'Come See Me 💋',
     btn2Label:   '',
-    redirectURL: 'https://example.com',
+    redirectURL: 'https://scrollgallery.com/?p=51207',
     chips:       'Yes please!,Maybe later',
-    delay:       1800,
-    active:      true,
+    delay:       400,
+    active:      false,
   };
 }
 
@@ -117,18 +117,21 @@ function uid() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).s
 function getTpl(id) { return data.templates.find(t => t.id === id); }
 
 // ── FAN PAGE ──────────────────────────────────────────────────
-// GET /?t=ID  →  show that template
-// GET /       →  show first active template
+// GET /?t=ID  →  show that specific template
+// GET /       →  pick random from active pool
 app.get('/', (req, res) => {
   let tpl;
   if (req.query.t) {
     tpl = getTpl(req.query.t);
   }
   if (!tpl) {
-    tpl = data.templates.find(t => t.active);
+    const pool = data.templates.filter(t => t.active);
+    if (pool.length > 0) {
+      tpl = pool[Math.floor(Math.random() * pool.length)];
+    }
   }
   if (!tpl) tpl = data.templates[0];
-  if (!tpl) return res.send('<h2>No templates yet. Go to /admin to create one.</h2>');
+  if (!tpl) return res.send('<h2 style="font-family:sans-serif;padding:40px">No templates yet. Go to /admin to create one.</h2>');
   res.send(fanPage(tpl));
 });
 
@@ -232,18 +235,13 @@ app.post('/admin/toggle', (req, res) => {
   if (!isAuth(req)) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (tpl) {
-    if (!tpl.active) {
-      // Activating this one — deactivate all others first
-      data.templates.forEach(t => t.active = false);
-      tpl.active = true;
-      saveData();
-      res.send(dashboardPage('✅ "' + tpl.name + '" is now live. All others paused.'));
-    } else {
-      // Deactivating
-      tpl.active = false;
-      saveData();
-      res.send(dashboardPage('⏸ "' + tpl.name + '" paused. No template is currently live.'));
-    }
+    tpl.active = !tpl.active;
+    saveData();
+    const pool = data.templates.filter(t => t.active).length;
+    const msg = tpl.active
+      ? `✅ "${tpl.name}" added to rotation. Pool: ${pool} template${pool>1?'s':''}.`
+      : `⏸ "${tpl.name}" removed from rotation. Pool: ${pool} template${pool!==1?'s':''}.`;
+    res.send(dashboardPage(msg));
   } else {
     res.send(dashboardPage(''));
   }
@@ -469,7 +467,7 @@ function dashboardPage(msg) {
       <div class="tcard-img">
         ${imgInner}
         <div class="tcard-badge">${esc(t.cardBadge)}</div>
-        <div class="tcard-status" style="background:${t.active ? 'rgba(49,162,76,.9)' : 'rgba(0,0,0,.5)'}">${t.active ? '● Live' : '⏸ Paused'}</div>
+        <div class="tcard-status" style="background:${t.active ? 'rgba(0,132,255,.9)' : 'rgba(0,0,0,.5)'}">${t.active ? '🎲 In rotation' : '⏸ Off'}</div>
       </div>
       <div class="tcard-info">
         <div class="tcard-av">${avInner}</div>
@@ -487,7 +485,7 @@ function dashboardPage(msg) {
       <div class="tcard-actions">
         <form method="POST" action="/admin/edit" style="flex:1;display:flex"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-edit">✏️ Edit</button></form>
         <form method="POST" action="/admin/duplicate"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-dup" title="Duplicate">⧉</button></form>
-        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle ${t.active ? 'btn-toggle-live' : 'btn-toggle-off'}">${t.active ? '● Live' : '▶ Set live'}</button></form>
+        <form method="POST" action="/admin/toggle"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-toggle ${t.active ? 'btn-toggle-live' : 'btn-toggle-off'}">${t.active ? '🎲 Active' : '+ Add to pool'}</button></form>
         <form method="POST" action="/admin/delete" onsubmit="return confirm('Delete?')"><input type="hidden" name="id" value="${esc(t.id)}"><button class="btn-del" title="Delete">🗑</button></form>
       </div>
     </div>`;
@@ -505,7 +503,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;margin-top:20px}
 .tcard{background:#fff;border-radius:14px;border:2px solid #e4e6eb;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
 .tcard:hover{box-shadow:0 4px 20px rgba(0,0,0,.1)}
-.tcard.live{border-color:#31a24c;box-shadow:0 0 0 3px rgba(49,162,76,.1)}
+.tcard.live{border-color:#0084ff;box-shadow:0 0 0 3px rgba(0,132,255,.1)}
 .tcard.paused{opacity:.65}
 .tcard-img{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;flex-shrink:0}
 .tcard-img img{width:100%;height:100%;object-fit:cover;display:block}
@@ -527,7 +525,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 .btn-edit{flex:1;background:#0084ff;color:#fff;border:none;border-radius:8px;padding:8px 0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-dup{width:32px;height:32px;border:1.5px solid #e4e6eb;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0}
 .btn-toggle{height:32px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;padding:0 10px;display:flex;align-items:center;gap:4px;font-family:inherit;white-space:nowrap;flex-shrink:0}
-.btn-toggle-live{background:#31a24c;color:#fff;border:none}
+.btn-toggle-live{background:#0084ff;color:#fff;border:none}
 .btn-toggle-off{background:#f0f2f5;color:#444;border:1.5px solid #e4e6eb}
 .btn-toggle-off:hover{background:#f0fff4;border-color:#31a24c;color:#31a24c}
 .btn-del{width:32px;height:32px;border:1.5px solid #ffd0d0;border-radius:8px;background:#fff0f0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:inherit;color:#c00;flex-shrink:0}
@@ -548,7 +546,12 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
   ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div style="font-size:20px;font-weight:800;color:#111">Templates <span style="font-size:14px;font-weight:500;color:#8a8d91">(${data.templates.length})</span></div>
-    ${(()=>{const live=data.templates.find(t=>t.active);return live?`<div style="font-size:12px;font-weight:600;color:#31a24c;background:#f0fff4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0">● Live: ${esc(live.name)}</div>`:`<div style="font-size:12px;font-weight:600;color:#8a8d91;background:#f7f8fa;padding:5px 12px;border-radius:20px;border:1px solid #e4e6eb">No template live</div>`})()}
+    ${(()=>{
+      const pool = data.templates.filter(t=>t.active);
+      return pool.length > 0
+        ? `<div style="font-size:12px;font-weight:600;color:#0084ff;background:#e8f4ff;padding:5px 12px;border-radius:20px;border:1px solid #b3d9ff">🎲 Rotating: ${pool.length} template${pool.length!==1?'s':''} active</div>`
+        : `<div style="font-size:12px;font-weight:600;color:#8a8d91;background:#f7f8fa;padding:5px 12px;border-radius:20px;border:1px solid #e4e6eb">No templates in rotation</div>`;
+    })()}
   </div>
   ${data.templates.length === 0
     ? '<div class="empty">No templates yet.<br>Click "+ New template" to create your first one.</div>'
