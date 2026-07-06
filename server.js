@@ -6,8 +6,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const ADMIN_PASS = process.env.ADMIN_PASS || 'lovely123';
-const DATA_FILE  = path.join(__dirname, 'data.json');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+// Use /data volume if available (Railway), otherwise local dir
+const BASE_DIR   = fs.existsSync('/data') ? '/data' : __dirname;
+const DATA_FILE  = path.join(BASE_DIR, 'data.json');
+const UPLOADS_DIR = path.join(BASE_DIR, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
