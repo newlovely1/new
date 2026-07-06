@@ -1,17 +1,17 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ── ADMIN PASSWORD ────────────────────────────────────────────
-// Change this! Set ADMIN_PASS in Railway environment variables
 const ADMIN_PASS = process.env.ADMIN_PASS || 'lovely123';
+const CONFIG_FILE = path.join(__dirname, 'config.json');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── IN-MEMORY CONFIG (persists while server is running) ───────
-// To persist across restarts, set INITIAL_CONFIG env var as JSON
-let config = {
+// ── DEFAULT CONFIG ────────────────────────────────────────────
+const DEFAULT_CONFIG = {
   pageName:    'Lovely Page',
   pageColor1:  '#0084ff',
   pageColor2:  '#44bec7',
@@ -28,12 +28,42 @@ let config = {
   delay:       1800,
 };
 
-// Allow seeding config from env var
-try {
-  if (process.env.INITIAL_CONFIG) {
-    config = { ...config, ...JSON.parse(process.env.INITIAL_CONFIG) };
+// ── LOAD CONFIG (file → env → defaults) ──────────────────────
+function loadConfig() {
+  // 1. Try config.json file first (saved by admin panel)
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      console.log('✅ Config loaded from config.json');
+      return { ...DEFAULT_CONFIG, ...data };
+    }
+  } catch(e) { console.log('config.json read error:', e.message); }
+
+  // 2. Fall back to INITIAL_CONFIG env var
+  try {
+    if (process.env.INITIAL_CONFIG) {
+      const data = JSON.parse(process.env.INITIAL_CONFIG);
+      console.log('✅ Config loaded from INITIAL_CONFIG env var');
+      return { ...DEFAULT_CONFIG, ...data };
+    }
+  } catch(e) { console.log('INITIAL_CONFIG parse error:', e.message); }
+
+  // 3. Use defaults
+  console.log('ℹ️  Using default config');
+  return { ...DEFAULT_CONFIG };
+}
+
+// ── SAVE CONFIG to file ───────────────────────────────────────
+function saveConfig(cfg) {
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+    console.log('✅ Config saved to config.json');
+  } catch(e) {
+    console.log('❌ Config save error:', e.message);
   }
-} catch(e) { console.log('INITIAL_CONFIG parse error, using defaults'); }
+}
+
+let config = loadConfig();
 
 // ── HELPERS ───────────────────────────────────────────────────
 function esc(str) {
@@ -104,6 +134,7 @@ app.post('/admin/save', (req, res) => {
     chips:       req.body.chips       || config.chips,
     delay:       parseInt(req.body.delay) || 1800,
   };
+  saveConfig(config);
   res.send(adminDashboard(config, '✅ Saved! Your fan page is updated.', req.body.pass));
 });
 
