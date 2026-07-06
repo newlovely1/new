@@ -148,22 +148,24 @@ app.post('/admin/save', (req, res) => {
   if (req.body.pass !== ADMIN_PASS) return res.send(loginPage('Session expired.'));
   const tpl = getTpl(req.body.id);
   if (!tpl) return res.redirect('/admin');
+  // Use req.body value always (allow empty strings), only fallback if field missing entirely
+  const s = (key, fallback) => req.body[key] !== undefined ? req.body[key] : fallback;
   Object.assign(tpl, {
-    name:        req.body.name        || tpl.name,
-    pageName:    req.body.pageName    || tpl.pageName,
-    pageColor1:  req.body.pageColor1  || tpl.pageColor1,
-    pageColor2:  req.body.pageColor2  || tpl.pageColor2,
-    message:     req.body.message     || tpl.message,
-    cardTitle:   req.body.cardTitle   || tpl.cardTitle,
-    cardDesc:    req.body.cardDesc    || tpl.cardDesc,
-    cardBadge:   req.body.cardBadge   || tpl.cardBadge,
-    cardEmoji:   req.body.cardEmoji   || tpl.cardEmoji,
-    cardImg:     req.body.cardImg     || '',
-    btn1Label:   req.body.btn1Label   || tpl.btn1Label,
-    btn2Label:   req.body.btn2Label   || '',
-    redirectURL: req.body.redirectURL || tpl.redirectURL,
-    chips:       req.body.chips       !== undefined ? req.body.chips : tpl.chips,
-    delay:       parseInt(req.body.delay) || 1800,
+    name:        s('name', tpl.name)               || tpl.name,
+    pageName:    s('pageName', tpl.pageName)        || tpl.pageName,
+    pageColor1:  s('pageColor1', tpl.pageColor1)   || tpl.pageColor1,
+    pageColor2:  s('pageColor2', tpl.pageColor2)   || tpl.pageColor2,
+    message:     s('message', tpl.message),
+    cardTitle:   s('cardTitle', tpl.cardTitle),
+    cardDesc:    s('cardDesc', tpl.cardDesc),
+    cardBadge:   s('cardBadge', tpl.cardBadge),
+    cardEmoji:   s('cardEmoji', tpl.cardEmoji),
+    cardImg:     s('cardImg', ''),
+    btn1Label:   s('btn1Label', tpl.btn1Label)     || tpl.btn1Label,
+    btn2Label:   s('btn2Label', ''),
+    redirectURL: s('redirectURL', tpl.redirectURL) || tpl.redirectURL,
+    chips:       s('chips', tpl.chips),
+    delay:       parseInt(s('delay', tpl.delay)) || 1800,
   });
   saveData();
   res.send(editPage(tpl, req.body.pass, '✅ Saved!'));
@@ -506,7 +508,7 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 }
 
 // =============================================================
-// EDIT PAGE — single template editor
+// EDIT PAGE — compact single template editor
 // =============================================================
 function editPage(tpl, pass, msg) {
   const ini = tpl.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
@@ -521,209 +523,154 @@ function editPage(tpl, pass, msg) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:100vh;-webkit-font-smoothing:antialiased}
-.topbar{background:#fff;border-bottom:1px solid #e4e6eb;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:10}
-.logo{font-size:18px;font-weight:800;color:#0084ff}
-.back-link{font-size:13px;color:#0084ff;text-decoration:none;font-weight:600;padding:7px 14px;background:#e8f4ff;border-radius:8px}
-.layout{display:grid;grid-template-columns:1fr 300px;gap:0;min-height:calc(100vh - 58px)}
-.form-col{padding:24px 28px 100px}
-.preview-col{background:#e9ebee;border-left:1px solid #dddfe2;position:sticky;top:58px;height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;padding:20px 12px;overflow-y:auto}
-.preview-label{font-size:11px;font-weight:700;color:#8a8d91;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
-.msg{background:#f0fff4;color:#166534;font-size:14px;padding:12px 16px;border-radius:10px;margin-bottom:20px;border:1px solid #bbf7d0;font-weight:500}
-.section{background:#fff;border-radius:14px;padding:22px;margin-bottom:16px;border:1px solid #e4e6eb}
-.section-title{font-size:12px;font-weight:700;color:#65676b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.field{margin-bottom:14px}.field:last-child{margin-bottom:0}
-.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:4px}
-input[type=text],input[type=url],input[type=number],textarea{width:100%;padding:9px 12px;border:1.5px solid #dddfe2;border-radius:9px;font-size:14px;font-family:inherit;outline:none;color:#111;background:#fff;transition:border .15s}
-input[type=text]:focus,input[type=url]:focus,input[type=number]:focus,textarea:focus{border-color:#0084ff}
-input[type=color]{padding:3px 5px;height:38px;cursor:pointer;border-radius:9px;border:1.5px solid #dddfe2;width:100%}
-textarea{resize:vertical;min-height:68px;line-height:1.5}
-.hint{font-size:11px;color:#8a8d91;margin-top:3px}
-.save-bar{position:fixed;bottom:0;left:0;right:300px;background:#fff;border-top:1px solid #e4e6eb;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:9}
-.save-btn{background:#0084ff;color:#fff;font-size:15px;font-weight:700;border:none;border-radius:10px;padding:11px 36px;cursor:pointer;font-family:inherit}
-.url-box{flex:1;background:#f7f8fa;border:1px solid #e4e6eb;border-radius:9px;padding:9px 12px;font-size:12px;color:#333;word-break:break-all}
-.url-box strong{color:#0084ff}
-/* avatar & card img upload */
-.img-upload-row{display:flex;align-items:center;gap:14px;margin-top:4px}
-.img-thumb{width:60px;height:60px;border-radius:50%;border:2px solid #e4e6eb;overflow:hidden;flex-shrink:0;background:#f0f2f5}
-.img-thumb.square{border-radius:10px}
-.file-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#f0f2f5;border-radius:8px;font-size:12px;font-weight:600;color:#333;cursor:pointer;border:1.5px solid #dddfe2}
-.file-btn:hover{background:#e4e6eb}
-.rm-btn{padding:6px 10px;background:#fff0f0;border-radius:8px;font-size:12px;font-weight:600;color:#c00;cursor:pointer;border:1.5px solid #ffd0d0;font-family:inherit}
+.topbar{background:#fff;border-bottom:1px solid #e4e6eb;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:10}
+.logo{font-size:17px;font-weight:800;color:#0084ff}
+.back-link{font-size:13px;color:#0084ff;text-decoration:none;font-weight:600;padding:6px 12px;background:#e8f4ff;border-radius:8px}
+.layout{display:grid;grid-template-columns:1fr 260px;gap:0;min-height:calc(100vh - 54px)}
+.form-col{padding:16px 20px 90px;max-width:700px}
+.preview-col{background:#e9ebee;border-left:1px solid #dddfe2;position:sticky;top:54px;height:calc(100vh - 54px);display:flex;flex-direction:column;align-items:center;padding:16px 10px;overflow-y:auto}
+.prev-label{font-size:10px;font-weight:700;color:#8a8d91;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.toast{background:#f0fff4;color:#166534;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:12px;border:1px solid #bbf7d0;font-weight:500}
+/* table layout */
+.tbl{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e4e6eb;margin-bottom:12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid #f0f2f5;font-size:13px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td:first-child{color:#65676b;font-weight:600;font-size:12px;white-space:nowrap;width:130px}
+.tbl input[type=text],.tbl input[type=url],.tbl input[type=number],.tbl textarea{width:100%;padding:7px 10px;border:1.5px solid #dddfe2;border-radius:7px;font-size:13px;font-family:inherit;outline:none;color:#111;background:#fff}
+.tbl input:focus,.tbl textarea:focus{border-color:#0084ff}
+.tbl textarea{resize:vertical;min-height:52px;line-height:1.4}
+.tbl input[type=color]{padding:2px 4px;height:32px;cursor:pointer;border-radius:6px;border:1.5px solid #dddfe2;width:60px}
+.sec-hdr{font-size:11px;font-weight:700;color:#0084ff;text-transform:uppercase;letter-spacing:.08em;padding:8px 12px 4px;background:#f7f9ff;border-bottom:1px solid #e4e6eb}
+.hint{font-size:10px;color:#8a8d91;margin-top:2px}
+.img-row{display:flex;align-items:center;gap:10px}
+.av-thumb{width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid #e4e6eb;background:#f0f2f5}
+.sq-thumb{width:50px;height:50px;border-radius:8px;overflow:hidden;flex-shrink:0;border:2px solid #e4e6eb;background:#f0f2f5}
+.up-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#f0f2f5;border-radius:6px;font-size:11px;font-weight:600;color:#333;cursor:pointer;border:1px solid #dddfe2}
+.rm-btn{padding:4px 8px;background:#fff0f0;border-radius:6px;font-size:11px;font-weight:600;color:#c00;cursor:pointer;border:1px solid #ffd0d0;font-family:inherit;margin-left:4px}
+.save-bar{position:fixed;bottom:0;left:0;right:260px;background:#fff;border-top:1px solid #e4e6eb;padding:10px 20px;display:flex;align-items:center;gap:10px;z-index:9}
+.save-btn{background:#0084ff;color:#fff;font-size:14px;font-weight:700;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-family:inherit}
+.fan-link{flex:1;font-size:11px;color:#0084ff;word-break:break-all;text-decoration:none}
 /* mini phone */
-.mini-phone{width:220px;border-radius:26px;background:#1c1c1e;border:5px solid #1c1c1e;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.2)}
-.mp-hdr{background:#fff;padding:7px 10px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #e4e6eb}
-.mp-av{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;position:relative}
-.mp-dot{width:8px;height:8px;background:#31a24c;border:2px solid #fff;border-radius:50%;position:absolute;bottom:0;right:0}
-.mp-name{font-size:11px;font-weight:700;color:#050505}
-.mp-stat{font-size:8px;color:#65676b}
-.mp-body{background:#fff;padding:8px 0 6px}
-.mp-datesep{text-align:center;font-size:8px;color:#8a8d91;padding:2px 0 7px}
-.mp-msgrow{display:flex;align-items:flex-end;gap:5px;padding:2px 7px}
-.mp-msgav{width:20px;height:20px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff}
-.mp-bub{max-width:62%;font-size:9px;line-height:1.4;padding:5px 9px;border-radius:12px;background:#f0f2f5;color:#050505;border-bottom-left-radius:3px;word-break:break-word}
-.mp-cwrap{padding:3px 7px 3px 32px}
-.mp-card{border-radius:9px;border:1px solid #dddfe2;overflow:hidden;max-width:155px}
-.mp-cimg{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)})}
-.mp-cbadge{position:absolute;top:5px;left:5px;background:rgba(255,255,255,.9);color:${esc(tpl.pageColor1)};font-size:6px;font-weight:700;padding:2px 5px;border-radius:10px;text-transform:uppercase}
-.mp-cbody{background:#fff;padding:6px 8px 5px}
-.mp-ctitle{font-size:9px;font-weight:700;color:#050505;margin-bottom:2px}
-.mp-cdesc{font-size:7px;color:#65676b;margin-bottom:5px;line-height:1.4}
-.mp-cdiv{border:none;border-top:1px solid #e4e6eb;margin:0 0 5px}
-.mp-cbtn{display:block;width:100%;padding:4px 0;border-radius:4px;font-size:8px;font-weight:700;text-align:center;border:none;background:${esc(tpl.pageColor1)};color:#fff;font-family:inherit}
-.mp-qrrow{display:flex;gap:4px;padding:3px 7px 2px 32px;flex-wrap:wrap}
-.mp-chip{font-size:7px;font-weight:600;color:${esc(tpl.pageColor1)};border:1px solid ${esc(tpl.pageColor1)};border-radius:10px;padding:2px 6px}
-.mp-seen{text-align:right;padding:2px 9px 4px;font-size:7px;color:#8a8d91}
-.mp-input{background:#fff;border-top:1px solid #e4e6eb;padding:6px 8px;display:flex;align-items:center;gap:5px}
-.mp-ifield{flex:1;background:#f0f2f5;border-radius:12px;padding:4px 8px;font-size:8px;color:#8a8d91}
-.mp-isend{width:22px;height:22px;border-radius:50%;background:${esc(tpl.pageColor1)};display:flex;align-items:center;justify-content:center}
-.mp-isend svg{width:10px;height:10px;fill:#fff;margin-left:1px}
-@media(max-width:860px){.layout{grid-template-columns:1fr}.preview-col{display:none}.save-bar{right:0}}
-@media(max-width:600px){.row-2{grid-template-columns:1fr}}
+.mp{width:200px;border-radius:22px;background:#1c1c1e;border:4px solid #1c1c1e;overflow:hidden;box-shadow:0 16px 32px rgba(0,0,0,.2)}
+.mp-hdr{background:#fff;padding:6px 8px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e4e6eb}
+.mp-av{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;position:relative}
+.mp-dot{width:7px;height:7px;background:#31a24c;border:1.5px solid #fff;border-radius:50%;position:absolute;bottom:0;right:0}
+.mp-nm{font-size:10px;font-weight:700;color:#050505}.mp-st{font-size:7px;color:#65676b}
+.mp-body{background:#fff;padding:6px 0 4px}
+.mp-ds{text-align:center;font-size:7px;color:#8a8d91;padding:2px 0 6px}
+.mp-mr{display:flex;align-items:flex-end;gap:4px;padding:2px 6px}
+.mp-ma{width:18px;height:18px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:#fff}
+.mp-bb{max-width:60%;font-size:8px;line-height:1.35;padding:4px 8px;border-radius:10px;background:#f0f2f5;color:#050505;border-bottom-left-radius:2px;word-break:break-word}
+.mp-cw{padding:3px 6px 3px 28px}
+.mp-cd{border-radius:8px;border:1px solid #dddfe2;overflow:hidden;max-width:140px}
+.mp-ci{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:linear-gradient(135deg,${esc(tpl.pageColor1)},${esc(tpl.pageColor2)})}
+.mp-cbg{position:absolute;top:4px;left:4px;background:rgba(255,255,255,.9);color:${esc(tpl.pageColor1)};font-size:5px;font-weight:700;padding:1px 4px;border-radius:8px;text-transform:uppercase}
+.mp-cb{background:#fff;padding:5px 7px 4px}
+.mp-ct{font-size:8px;font-weight:700;color:#050505;margin-bottom:1px}
+.mp-cx{font-size:6px;color:#65676b;margin-bottom:4px;line-height:1.3}
+.mp-cdv{border:none;border-top:1px solid #e4e6eb;margin:0 0 4px}
+.mp-btn{display:block;width:100%;padding:3px 0;border-radius:3px;font-size:7px;font-weight:700;text-align:center;border:none;background:${esc(tpl.pageColor1)};color:#fff;font-family:inherit}
+.mp-qr{display:flex;gap:3px;padding:2px 6px 2px 28px;flex-wrap:wrap}
+.mp-ch{font-size:6px;font-weight:600;color:${esc(tpl.pageColor1)};border:1px solid ${esc(tpl.pageColor1)};border-radius:8px;padding:1px 5px}
+.mp-sn{text-align:right;padding:2px 8px 3px;font-size:6px;color:#8a8d91}
+.mp-ib{background:#fff;border-top:1px solid #e4e6eb;padding:5px 7px;display:flex;align-items:center;gap:4px}
+.mp-if{flex:1;background:#f0f2f5;border-radius:10px;padding:3px 7px;font-size:7px;color:#8a8d91}
+.mp-is{width:18px;height:18px;border-radius:50%;background:${esc(tpl.pageColor1)};display:flex;align-items:center;justify-content:center}
+.mp-is svg{width:9px;height:9px;fill:#fff;margin-left:1px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.preview-col{display:none}.save-bar{right:0}}
 </style></head>
 <body>
 <div class="topbar">
-  <div class="logo">Lovely. <span style="font-size:13px;font-weight:500;color:#65676b">/ ${esc(tpl.name)}</span></div>
-  <a href="/admin" class="back-link" onclick="history.back();return false">← All templates</a>
+  <div class="logo">Lovely. <span style="font-size:12px;font-weight:500;color:#65676b">/ ${esc(tpl.name)}</span></div>
+  <a href="/admin" class="back-link">← Templates</a>
 </div>
 <div class="layout">
-  <div class="form-col">
-    ${msg ? `<div class="msg">${esc(msg)}</div>` : ''}
+<div class="form-col">
+  ${msg ? `<div class="toast">${esc(msg)}</div>` : ''}
+  <form method="POST" action="/admin/save">
+  <input type="hidden" name="pass" value="${esc(pass)}">
+  <input type="hidden" name="id" value="${esc(tpl.id)}">
 
-    <form method="POST" action="/admin/save">
-      <input type="hidden" name="pass" value="${esc(pass)}">
-      <input type="hidden" name="id"   value="${esc(tpl.id)}">
-
-      <div class="section">
-        <div class="section-title">📋 Template name</div>
-        <div class="field">
-          <label>Internal name (for your reference)</label>
-          <input type="text" name="name" value="${esc(tpl.name)}" placeholder="e.g. Deborah 62">
-        </div>
+  <table class="tbl">
+    <tr><td colspan="2" class="sec-hdr">📋 Template</td></tr>
+    <tr><td>Internal name</td><td><input type="text" name="name" value="${esc(tpl.name)}" placeholder="e.g. Deborah 62"></td></tr>
+    <tr><td>Page name</td><td><input type="text" name="pageName" value="${esc(tpl.pageName)}" placeholder="Lovely Page"></td></tr>
+    <tr><td>Avatar colors</td><td style="display:flex;gap:8px;align-items:center"><input type="color" name="pageColor1" value="${esc(tpl.pageColor1)}"><input type="color" name="pageColor2" value="${esc(tpl.pageColor2)}"><span class="hint">Used if no photo</span></td></tr>
+    <tr><td>Profile photo</td><td>
+      <div class="img-row">
+        <div class="av-thumb">${avHtml}</div>
+        <form method="POST" action="/admin/avatar" enctype="multipart/form-data" style="display:inline">
+          <input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}">
+          <label class="up-btn">📷 Upload<input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
+        </form>
+        ${tpl.avatarImg ? `<form method="POST" action="/admin/avatar/remove" style="display:inline"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
       </div>
-
-      <div class="section">
-        <div class="section-title">👤 Page / Sender</div>
-        <div class="field">
-          <label>Page name (shown in chat header)</label>
-          <input type="text" name="pageName" value="${esc(tpl.pageName)}" placeholder="NVMax Official">
-        </div>
-        <div class="row-2">
-          <div class="field"><label>Avatar color 1</label><input type="color" name="pageColor1" value="${esc(tpl.pageColor1)}"><div class="hint">Used if no photo</div></div>
-          <div class="field"><label>Avatar color 2</label><input type="color" name="pageColor2" value="${esc(tpl.pageColor2)}"></div>
-        </div>
-        <div class="field">
-          <label>Profile photo</label>
-          <div class="img-upload-row">
-            <div class="img-thumb">${avHtml}</div>
-            <div>
-              <form method="POST" action="/admin/avatar" enctype="multipart/form-data">
-                <input type="hidden" name="pass" value="${esc(pass)}">
-                <input type="hidden" name="id"   value="${esc(tpl.id)}">
-                <label class="file-btn">📷 Upload photo<input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
-              </form>
-              ${tpl.avatarImg ? `<form method="POST" action="/admin/avatar/remove" style="margin-top:6px"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button type="submit" class="rm-btn">✕ Remove</button></form>` : ''}
-              <div class="hint" style="margin-top:5px">JPG/PNG · max 8MB</div>
-            </div>
-          </div>
-        </div>
+    </td></tr>
+    <tr><td colspan="2" class="sec-hdr">💬 Message</td></tr>
+    <tr><td>Bubble text</td><td><input type="text" name="message" value="${esc(tpl.message)}" placeholder="Hey! I sent you something 🎉"></td></tr>
+    <tr><td colspan="2" class="sec-hdr">🃏 Card</td></tr>
+    <tr><td>Title</td><td><input type="text" name="cardTitle" value="${esc(tpl.cardTitle)}"></td></tr>
+    <tr><td>Description</td><td><textarea name="cardDesc">${esc(tpl.cardDesc)}</textarea></td></tr>
+    <tr><td>Badge</td><td><input type="text" name="cardBadge" value="${esc(tpl.cardBadge)}"></td></tr>
+    <tr><td>Card image</td><td>
+      <div class="img-row" style="margin-bottom:6px">
+        <div class="sq-thumb">${cardPreviewHtml}</div>
+        <form method="POST" action="/admin/cardimg" enctype="multipart/form-data" style="display:inline">
+          <input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}">
+          <label class="up-btn">🖼 Upload<input type="file" name="cardimg" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
+        </form>
+        ${tpl.cardImg ? `<form method="POST" action="/admin/cardimg/remove" style="display:inline"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
       </div>
+      <input type="url" name="cardImg" value="${esc(tpl.cardImg)}" placeholder="or paste image URL here…">
+    </td></tr>
+    <tr><td colspan="2" class="sec-hdr">🔘 Buttons</td></tr>
+    <tr><td>Button text</td><td><input type="text" name="btn1Label" value="${esc(tpl.btn1Label)}"></td></tr>
+    <tr><td>Button 2 <span class="hint">(optional)</span></td><td><input type="text" name="btn2Label" value="${esc(tpl.btn2Label)}" placeholder="Leave empty to hide"></td></tr>
+    <tr><td>Redirect URL</td><td><input type="url" name="redirectURL" value="${esc(tpl.redirectURL)}" placeholder="https://scrollgallery.com/..."><div class="hint">Where fans go when they click anything</div></td></tr>
+    <tr><td colspan="2" class="sec-hdr">⚡ Quick replies</td></tr>
+    <tr><td>Chips</td><td><input type="text" name="chips" value="${esc(tpl.chips)}" placeholder="Yes!,Maybe later"><div class="hint">Comma separated — leave empty to hide</div></td></tr>
+    <tr><td colspan="2" class="sec-hdr">⚙️ Settings</td></tr>
+    <tr><td>Typing delay</td><td><input type="number" name="delay" value="${tpl.delay}" min="0" max="5000" step="100" style="width:100px"> <span class="hint">ms (0 = instant)</span></td></tr>
+  </table>
 
-      <div class="section">
-        <div class="section-title">💬 Opening message</div>
-        <div class="field">
-          <input type="text" name="message" value="${esc(tpl.message)}" placeholder="Hey! I sent you something 🎉">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">🃏 Card</div>
-        <div class="field"><label>Title</label><input type="text" name="cardTitle" value="${esc(tpl.cardTitle)}"></div>
-        <div class="field"><label>Description</label><textarea name="cardDesc">${esc(tpl.cardDesc)}</textarea></div>
-        <div class="row-2">
-          <div class="field"><label>Badge label</label><input type="text" name="cardBadge" value="${esc(tpl.cardBadge)}"></div>
-          <div class="field"><label>Emoji (fallback)</label><input type="text" name="cardEmoji" value="${esc(tpl.cardEmoji)}"></div>
-        </div>
-        <div class="field">
-          <label>Card image</label>
-          <div class="img-upload-row">
-            <div class="img-thumb square" style="width:70px;height:70px;border-radius:10px;overflow:hidden;background:#f0f2f5">${cardPreviewHtml}</div>
-            <div>
-              <form method="POST" action="/admin/cardimg" enctype="multipart/form-data">
-                <input type="hidden" name="pass" value="${esc(pass)}">
-                <input type="hidden" name="id"   value="${esc(tpl.id)}">
-                <label class="file-btn">🖼 Upload image<input type="file" name="cardimg" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
-              </form>
-              ${tpl.cardImg ? `<form method="POST" action="/admin/cardimg/remove" style="margin-top:6px"><input type="hidden" name="pass" value="${esc(pass)}"><input type="hidden" name="id" value="${esc(tpl.id)}"><button type="submit" class="rm-btn">✕ Remove</button></form>` : ''}
-              <div class="hint" style="margin-top:5px">Or paste URL below</div>
-            </div>
-          </div>
-          <input type="url" name="cardImg" value="${esc(tpl.cardImg)}" placeholder="https://..." style="margin-top:8px">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">🔘 Buttons & redirect</div>
-        <div class="field"><label>Primary button</label><input type="text" name="btn1Label" value="${esc(tpl.btn1Label)}"></div>
-        <div class="field"><label>Secondary button <span style="font-weight:400;color:#8a8d91">(leave empty to hide)</span></label><input type="text" name="btn2Label" value="${esc(tpl.btn2Label)}"></div>
-        <div class="field"><label>Redirect URL ★</label><input type="url" name="redirectURL" value="${esc(tpl.redirectURL)}" required><div class="hint">Where fans go when they click anything</div></div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">⚡ Quick replies</div>
-        <div class="field"><input type="text" name="chips" value="${esc(tpl.chips)}" placeholder="Yes!,Maybe later,Tell me more"><div class="hint">Comma separated — leave empty to hide</div></div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">⚙️ Settings</div>
-        <div class="field"><label>Typing delay (ms)</label><input type="number" name="delay" value="${tpl.delay}" min="0" max="5000" step="100"><div class="hint">0 = instant</div></div>
-      </div>
-
-      <div class="save-bar">
-        <div class="url-box" id="urlBox"><strong>…/?t=${esc(tpl.id)}</strong></div>
-        <button type="submit" class="save-btn">Save →</button>
-      </div>
-    </form>
+  <div class="save-bar">
+    <a class="fan-link" id="fanLink" href="/?t=${esc(tpl.id)}" target="_blank">/?t=${esc(tpl.id)}</a>
+    <button type="submit" class="save-btn">💾 Save</button>
   </div>
+  </form>
+</div>
 
-  <!-- PREVIEW -->
-  <div class="preview-col">
-    <div class="preview-label">Preview</div>
-    <div class="mini-phone">
-      <div style="background:${esc(tpl.pageColor1)};height:5px"></div>
-      <div class="mp-hdr">
-        <div class="mp-av">${avHtml}<div class="mp-dot"></div></div>
-        <div><div class="mp-name">${esc(tpl.pageName)}</div><div class="mp-stat">Active now</div></div>
-      </div>
-      <div class="mp-body">
-        <div class="mp-datesep">Today</div>
-        <div class="mp-msgrow">
-          <div class="mp-msgav">${avHtml}</div>
-          <div class="mp-bub">${esc(tpl.message)}</div>
-        </div>
-        <div class="mp-cwrap">
-          <div class="mp-card">
-            <div class="mp-cimg">${cardPreviewHtml}<div class="mp-cbadge">${esc(tpl.cardBadge)}</div></div>
-            <div class="mp-cbody">
-              <div class="mp-ctitle">${esc(tpl.cardTitle)}</div>
-              <div class="mp-cdesc">${esc(tpl.cardDesc)}</div>
-              <hr class="mp-cdiv">
-              <button class="mp-cbtn">${esc(tpl.btn1Label)}</button>
-            </div>
-          </div>
-        </div>
-        ${tpl.chips ? `<div class="mp-qrrow">${tpl.chips.split(',').filter(x=>x.trim()).map(ch=>`<div class="mp-chip">${esc(ch.trim())}</div>`).join('')}</div>` : ''}
-        <div class="mp-seen">Seen · just now</div>
-      </div>
-      <div class="mp-input">
-        <div class="mp-ifield">Message…</div>
-        <div class="mp-isend"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
-      </div>
+<!-- PREVIEW -->
+<div class="preview-col">
+  <div class="prev-label">Preview</div>
+  <div class="mp">
+    <div style="background:${esc(tpl.pageColor1)};height:4px"></div>
+    <div class="mp-hdr">
+      <div class="mp-av">${avHtml}<div class="mp-dot"></div></div>
+      <div><div class="mp-nm">${esc(tpl.pageName)}</div><div class="mp-st">Active now</div></div>
     </div>
+    <div class="mp-body">
+      <div class="mp-ds">Today</div>
+      <div class="mp-mr"><div class="mp-ma">${avHtml}</div><div class="mp-bb">${esc(tpl.message)}</div></div>
+      <div class="mp-cw"><div class="mp-cd">
+        <div class="mp-ci">${cardPreviewHtml}<div class="mp-cbg">${esc(tpl.cardBadge)}</div></div>
+        <div class="mp-cb">
+          <div class="mp-ct">${esc(tpl.cardTitle)}</div>
+          <div class="mp-cx">${esc(tpl.cardDesc)}</div>
+          <hr class="mp-cdv">
+          <button class="mp-btn">${esc(tpl.btn1Label)}</button>
+        </div>
+      </div></div>
+      ${tpl.chips ? `<div class="mp-qr">${tpl.chips.split(',').filter(x=>x.trim()).map(ch=>`<div class="mp-ch">${esc(ch.trim())}</div>`).join('')}</div>` : ''}
+      <div class="mp-sn">Seen · just now</div>
+    </div>
+    <div class="mp-ib"><div class="mp-if">Message…</div><div class="mp-is"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div></div>
   </div>
 </div>
+</div>
 <script>
-document.getElementById('urlBox').innerHTML='<strong>'+window.location.origin+'/?t=${esc(tpl.id)}</strong>';
+document.getElementById('fanLink').href=window.location.origin+'/?t=${esc(tpl.id)}';
+document.getElementById('fanLink').textContent=window.location.origin+'/?t=${esc(tpl.id)}';
 </script>
 </body></html>`;
 }
