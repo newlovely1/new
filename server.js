@@ -167,7 +167,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .card-wrap{padding:6px 12px 6px 48px}
 .tpl-card{border-radius:16px;border:1px solid #dddfe2;overflow:hidden;background:#fff;max-width:280px;cursor:pointer}
 .tpl-card:active{transform:scale(.98)}
-.card-image{width:100%;height:160px;position:relative;overflow:hidden;background:${grad}}
+.card-image{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:${grad}}
 .card-badge{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);color:${esc(c.pageColor1)};font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
 .card-body{padding:13px 14px 11px;background:#fff}
 .card-title{font-size:15px;font-weight:700;color:#050505;margin-bottom:5px;line-height:1.3}
@@ -192,15 +192,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
 .typing-dot:nth-child(2){animation-delay:.15s}
 .typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:20px}
-.overlay.show{display:flex}
-.overlay-sheet{background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:390px;text-align:center;animation:slideUp .28s cubic-bezier(.34,1.56,.64,1)}
-@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.overlay-icon{width:56px;height:56px;border-radius:50%;background:#e8f4ff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:26px}
-.overlay-title{font-size:18px;font-weight:700;color:#050505;margin-bottom:7px}
-.overlay-sub{font-size:14px;color:#65676b;margin-bottom:20px;line-height:1.5}
-.overlay-btn{display:block;width:100%;background:${esc(c.pageColor1)};color:#fff;font-size:15px;font-weight:700;border:none;border-radius:12px;padding:13px 0;cursor:pointer;font-family:inherit;text-decoration:none;margin-bottom:10px}
-.overlay-cancel{display:block;width:100%;background:#f0f2f5;color:#050505;font-size:15px;font-weight:600;border:none;border-radius:12px;padding:13px 0;cursor:pointer;font-family:inherit}
+
 @media(max-width:430px){body{padding:0;align-items:flex-start;background:#fff}.phone{border-radius:0;border:none;box-shadow:none;max-width:100%;width:100%;min-height:100vh;min-height:100dvh}.chat-header{padding-top:12px}.chat-body{min-height:calc(100dvh - 130px)}.input-bar{position:sticky;bottom:0}}
 </style>
 </head>
@@ -253,15 +245,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
     <div class="send-btn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
   </div>
 </div>
-<div class="overlay" id="ov">
-  <div class="overlay-sheet">
-    <div class="overlay-icon">🎁</div>
-    <div class="overlay-title">${esc(c.btn1Label.replace('→','').trim())}</div>
-    <div class="overlay-sub">You're about to visit the offer page. Tap "Open now" to continue.</div>
-    <a class="overlay-btn" href="${esc(c.redirectURL)}" target="_blank" rel="noopener">Open now →</a>
-    <button class="overlay-cancel" onclick="document.getElementById('ov').classList.remove('show')">Cancel</button>
-  </div>
-</div>
+
 <script>
 (function(){
   var now=new Date();
@@ -272,8 +256,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',Arial,sans-seri
     document.getElementById('typ').style.display='none';
     document.getElementById('msgs').style.display='block';
   },${c.delay});
-  window.handleClaim=function(e){if(e)e.stopPropagation();document.getElementById('ov').classList.add('show');}
-  document.getElementById('ov').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+  window.handleClaim=function(e){if(e)e.stopPropagation();window.location.href='${esc(c.redirectURL)}';};
 })();
 </script>
 </body>
@@ -308,9 +291,9 @@ button:hover{opacity:.9}
   <div class="logo">Lovely<span>.</span></div>
   <div class="sub">Admin Panel — enter your password</div>
   ${error ? `<div class="error">${esc(error)}</div>` : ''}
-  <form method="POST" action="/admin">
+  <form method="POST" action="/admin" autocomplete="on">
     <label>Password</label>
-    <input type="password" name="pass" placeholder="••••••••" autofocus required>
+    <input type="password" name="pass" id="pass" placeholder="••••••••" autofocus required autocomplete="current-password">
     <button type="submit">Sign in →</button>
   </form>
 </div>
@@ -320,6 +303,14 @@ button:hover{opacity:.9}
 
 // ── ADMIN DASHBOARD ───────────────────────────────────────────
 function adminDashboard(cfg, success, pass) {
+  const ini = cfg.pageName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const grad = cfg.pageColor1 + ', ' + cfg.pageColor2;
+  const chips = cfg.chips ? cfg.chips.split(',').filter(x=>x.trim()) : [];
+  const chipsHtml = chips.map(ch=>`<div style="font-size:11px;font-weight:600;color:${esc(cfg.pageColor1)};border:1.5px solid ${esc(cfg.pageColor1)};border-radius:16px;padding:4px 10px;white-space:nowrap">${esc(ch.trim())}</div>`).join('');
+  const cardImgHtml = cfg.cardImg
+    ? `<img src="${esc(cfg.cardImg)}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
+    : `<div style="font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%">${esc(cfg.cardEmoji)}</div>`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -332,10 +323,12 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f0f
 .topbar{background:#fff;border-bottom:1px solid #e4e6eb;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:10}
 .logo{font-size:22px;font-weight:800;color:#0084ff;letter-spacing:-0.03em}
 .logo span{color:#111}
-.topbar-right{display:flex;align-items:center;gap:12px}
 .preview-link{font-size:13px;color:#0084ff;text-decoration:none;font-weight:600;padding:7px 14px;background:#e8f4ff;border-radius:8px}
 .preview-link:hover{background:#d0eaff}
-.main{max-width:780px;margin:0 auto;padding:28px 20px 60px}
+.layout{display:grid;grid-template-columns:1fr 360px;gap:0;min-height:calc(100vh - 58px)}
+.form-col{padding:28px 28px 100px;max-width:820px}
+.preview-col{background:#e9ebee;border-left:1px solid #dddfe2;position:sticky;top:58px;height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px;overflow-y:auto}
+.preview-label{font-size:11px;font-weight:700;color:#8a8d91;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
 .success{background:#f0fff4;color:#166534;font-size:14px;padding:12px 16px;border-radius:10px;margin-bottom:24px;border:1px solid #bbf7d0;font-weight:500}
 .section{background:#fff;border-radius:14px;padding:24px;margin-bottom:20px;border:1px solid #e4e6eb}
 .section-title{font-size:13px;font-weight:700;color:#65676b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:18px;display:flex;align-items:center;gap:8px}
@@ -349,11 +342,39 @@ input[type=text]:focus,input[type=url]:focus,input[type=number]:focus,textarea:f
 textarea{resize:vertical;min-height:72px;line-height:1.5}
 input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
 .hint{font-size:11px;color:#8a8d91;margin-top:4px}
-.save-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #e4e6eb;padding:14px 20px;text-align:center}
+.save-bar{position:fixed;bottom:0;left:0;right:360px;background:#fff;border-top:1px solid #e4e6eb;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:9}
 .save-btn{background:#0084ff;color:#fff;font-size:15px;font-weight:700;border:none;border-radius:10px;padding:12px 40px;cursor:pointer;font-family:inherit;transition:opacity .15s}
 .save-btn:hover{opacity:.9}
-.url-box{background:#f7f8fa;border:1px solid #e4e6eb;border-radius:9px;padding:12px 14px;font-size:13px;color:#333;word-break:break-all;margin-top:6px}
+.url-box{background:#f7f8fa;border:1px solid #e4e6eb;border-radius:9px;padding:10px 13px;font-size:12px;color:#333;word-break:break-all;flex:1}
 .url-box strong{color:#0084ff}
+/* ── MINI PHONE ── */
+.mini-phone{width:240px;border-radius:28px;background:#1c1c1e;border:6px solid #1c1c1e;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,.22)}
+.mp-header{background:#fff;padding:8px 10px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #e4e6eb}
+.mp-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;position:relative;background:linear-gradient(135deg,${esc(cfg.pageColor1)},${esc(cfg.pageColor2)})}
+.mp-dot{width:8px;height:8px;background:#31a24c;border:2px solid #fff;border-radius:50%;position:absolute;bottom:0;right:0}
+.mp-name{font-size:12px;font-weight:700;color:#050505}
+.mp-stat{font-size:9px;color:#65676b}
+.mp-body{background:#fff;padding:10px 0 6px}
+.mp-datesep{text-align:center;font-size:9px;color:#8a8d91;padding:2px 0 8px}
+.mp-msgrow{display:flex;align-items:flex-end;gap:6px;padding:2px 8px}
+.mp-msgav{width:22px;height:22px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,${esc(cfg.pageColor1)},${esc(cfg.pageColor2)});display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff}
+.mp-bubble{max-width:65%;font-size:11px;line-height:1.4;padding:6px 10px;border-radius:14px;background:#f0f2f5;color:#050505;border-bottom-left-radius:3px;word-break:break-word}
+.mp-cardwrap{padding:4px 8px 4px 36px}
+.mp-card{border-radius:10px;border:1px solid #dddfe2;overflow:hidden;background:#fff;max-width:180px}
+.mp-cardimg{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:linear-gradient(135deg,${esc(cfg.pageColor1)},${esc(cfg.pageColor2)})}
+.mp-badge{position:absolute;top:6px;left:6px;background:rgba(255,255,255,.92);color:${esc(cfg.pageColor1)};font-size:7px;font-weight:700;padding:2px 6px;border-radius:12px;text-transform:uppercase;letter-spacing:.04em}
+.mp-cardbody{padding:8px 9px 7px}
+.mp-cardtitle{font-size:10px;font-weight:700;color:#050505;margin-bottom:3px;line-height:1.3}
+.mp-carddesc{font-size:8px;color:#65676b;line-height:1.4;margin-bottom:7px}
+.mp-carddiv{border:none;border-top:1px solid #e4e6eb;margin:0 0 6px}
+.mp-cardbtn{display:block;width:100%;padding:5px 0;border-radius:5px;font-size:9px;font-weight:700;text-align:center;border:none;cursor:pointer;font-family:inherit;margin-bottom:4px;background:${esc(cfg.pageColor1)};color:#fff}
+.mp-qrrow{display:flex;gap:4px;padding:4px 8px 3px 36px;flex-wrap:wrap}
+.mp-seen{text-align:right;padding:3px 10px 5px;font-size:8px;color:#8a8d91}
+.mp-inputbar{background:#fff;border-top:1px solid #e4e6eb;padding:7px 8px;display:flex;align-items:center;gap:6px}
+.mp-inputfield{flex:1;background:#f0f2f5;border-radius:16px;padding:6px 10px;font-size:10px;color:#8a8d91}
+.mp-sendbtn{width:26px;height:26px;border-radius:50%;background:${esc(cfg.pageColor1)};display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mp-sendbtn svg{width:12px;height:12px;fill:#fff;margin-left:1px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.preview-col{display:none}.save-bar{right:0}}
 @media(max-width:600px){.row-2{grid-template-columns:1fr}}
 </style>
 </head>
@@ -361,133 +382,162 @@ input[type=color]{padding:4px 6px;height:40px;cursor:pointer;border-radius:9px}
 
 <div class="topbar">
   <div class="logo">Lovely<span>.</span> <span style="font-size:13px;font-weight:500;color:#65676b">Admin</span></div>
-  <div class="topbar-right">
-    <a href="/" target="_blank" class="preview-link">Preview fan page ↗</a>
-  </div>
+  <a href="/" target="_blank" class="preview-link">Open fan page ↗</a>
 </div>
 
-<div class="main">
+<div class="layout">
 
-  ${success ? `<div class="success">${esc(success)}</div>` : ''}
+  <!-- FORM COLUMN -->
+  <div class="form-col">
+    ${success ? `<div class="success">${esc(success)}</div>` : ''}
 
-  <form method="POST" action="/admin/save">
-    <input type="hidden" name="pass" value="${esc(pass || '')}">
+    <form method="POST" action="/admin/save">
+      <input type="hidden" name="pass" value="${esc(pass || '')}">
 
-    <!-- PAGE / SENDER -->
-    <div class="section">
-      <div class="section-title"><span>👤</span> Page / Sender</div>
-      <div class="field">
-        <label>Page name</label>
-        <input type="text" name="pageName" value="${esc(cfg.pageName)}" placeholder="NVMax Official">
-      </div>
-      <div class="row-2">
+      <div class="section">
+        <div class="section-title"><span>👤</span> Page / Sender</div>
         <div class="field">
-          <label>Avatar color 1</label>
-          <input type="color" name="pageColor1" value="${esc(cfg.pageColor1)}">
-          <div class="hint">Gradient start</div>
+          <label>Page name</label>
+          <input type="text" name="pageName" value="${esc(cfg.pageName)}" placeholder="NVMax Official">
         </div>
-        <div class="field">
-          <label>Avatar color 2</label>
-          <input type="color" name="pageColor2" value="${esc(cfg.pageColor2)}">
-          <div class="hint">Gradient end</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MESSAGE -->
-    <div class="section">
-      <div class="section-title"><span>💬</span> Opening message</div>
-      <div class="field">
-        <label>Bubble text</label>
-        <input type="text" name="message" value="${esc(cfg.message)}" placeholder="Hey! We have something for you 🎉">
-      </div>
-    </div>
-
-    <!-- CARD -->
-    <div class="section">
-      <div class="section-title"><span>🃏</span> Card content</div>
-      <div class="field">
-        <label>Title</label>
-        <input type="text" name="cardTitle" value="${esc(cfg.cardTitle)}" placeholder="50% Off Today Only">
-      </div>
-      <div class="field">
-        <label>Description</label>
-        <textarea name="cardDesc">${esc(cfg.cardDesc)}</textarea>
-      </div>
-      <div class="row-2">
-        <div class="field">
-          <label>Badge label</label>
-          <input type="text" name="cardBadge" value="${esc(cfg.cardBadge)}" placeholder="Limited offer">
-        </div>
-        <div class="field">
-          <label>Emoji (no image)</label>
-          <input type="text" name="cardEmoji" value="${esc(cfg.cardEmoji)}" placeholder="🛍️">
+        <div class="row-2">
+          <div class="field">
+            <label>Avatar color 1</label>
+            <input type="color" name="pageColor1" value="${esc(cfg.pageColor1)}">
+            <div class="hint">Gradient start</div>
+          </div>
+          <div class="field">
+            <label>Avatar color 2</label>
+            <input type="color" name="pageColor2" value="${esc(cfg.pageColor2)}">
+            <div class="hint">Gradient end</div>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>Card image URL <span style="font-weight:400;color:#8a8d91">(optional — overrides emoji)</span></label>
-        <input type="url" name="cardImg" value="${esc(cfg.cardImg)}" placeholder="https://cdn.example.com/banner.jpg">
+
+      <div class="section">
+        <div class="section-title"><span>💬</span> Opening message</div>
+        <div class="field">
+          <label>Bubble text</label>
+          <input type="text" name="message" value="${esc(cfg.message)}" placeholder="Hey! We have something for you 🎉">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>🃏</span> Card content</div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" name="cardTitle" value="${esc(cfg.cardTitle)}" placeholder="50% Off Today Only">
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea name="cardDesc">${esc(cfg.cardDesc)}</textarea>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Badge label</label>
+            <input type="text" name="cardBadge" value="${esc(cfg.cardBadge)}" placeholder="Limited offer">
+          </div>
+          <div class="field">
+            <label>Emoji (no image)</label>
+            <input type="text" name="cardEmoji" value="${esc(cfg.cardEmoji)}" placeholder="🛍️">
+          </div>
+        </div>
+        <div class="field">
+          <label>Card image URL <span style="font-weight:400;color:#8a8d91">(optional — overrides emoji)</span></label>
+          <input type="url" name="cardImg" value="${esc(cfg.cardImg)}" placeholder="https://cdn.example.com/banner.jpg">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>🔘</span> Buttons & redirect</div>
+        <div class="field">
+          <label>Primary button label</label>
+          <input type="text" name="btn1Label" value="${esc(cfg.btn1Label)}" placeholder="Claim your deal →">
+        </div>
+        <div class="field">
+          <label>Secondary button label <span style="font-weight:400;color:#8a8d91">(leave empty to hide)</span></label>
+          <input type="text" name="btn2Label" value="${esc(cfg.btn2Label)}" placeholder="Learn more">
+        </div>
+        <div class="field">
+          <label>Redirect URL <span style="color:#c00">*</span></label>
+          <input type="url" name="redirectURL" value="${esc(cfg.redirectURL)}" placeholder="https://scrollgallery.com/offer1" required>
+          <div class="hint">Where fans go when they click the button</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>⚡</span> Quick reply chips</div>
+        <div class="field">
+          <label>Chips (comma separated)</label>
+          <input type="text" name="chips" value="${esc(cfg.chips)}" placeholder="Yes please!,Maybe later,Tell me more">
+          <div class="hint">Leave empty to hide chips</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>⚙️</span> Settings</div>
+        <div class="field">
+          <label>Typing delay (ms)</label>
+          <input type="number" name="delay" value="${cfg.delay}" min="500" max="5000" step="100">
+          <div class="hint">How long typing dots show before message appears</div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <div class="url-box" id="urlBox"><strong>https://your-app.railway.app/</strong></div>
+        <button type="submit" class="save-btn">Save & go live →</button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- PREVIEW COLUMN -->
+  <div class="preview-col">
+    <div class="preview-label">Preview</div>
+    <div class="mini-phone">
+      <div style="background:${esc(cfg.pageColor1)};height:6px"></div>
+      <div class="mp-header">
+        <div class="mp-av">${ini}<div class="mp-dot"></div></div>
+        <div>
+          <div class="mp-name">${esc(cfg.pageName)}</div>
+          <div class="mp-stat">Active now</div>
+        </div>
+      </div>
+      <div class="mp-body">
+        <div class="mp-datesep">Today</div>
+        <div class="mp-msgrow">
+          <div class="mp-msgav">${ini}</div>
+          <div class="mp-bubble">${esc(cfg.message)}</div>
+        </div>
+        <div class="mp-cardwrap">
+          <div class="mp-card">
+            <div class="mp-cardimg">
+              ${cardImgHtml}
+              <div class="mp-badge">${esc(cfg.cardBadge)}</div>
+            </div>
+            <div class="mp-cardbody">
+              <div class="mp-cardtitle">${esc(cfg.cardTitle)}</div>
+              <div class="mp-carddesc">${esc(cfg.cardDesc)}</div>
+              <hr class="mp-carddiv">
+              <button class="mp-cardbtn">${esc(cfg.btn1Label)}</button>
+            </div>
+          </div>
+        </div>
+        ${chipsHtml ? `<div class="mp-qrrow">${chipsHtml}</div>` : ''}
+        <div class="mp-seen">Seen · just now</div>
+      </div>
+      <div class="mp-inputbar">
+        <div class="mp-inputfield">Message…</div>
+        <div class="mp-sendbtn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
       </div>
     </div>
+  </div>
 
-    <!-- BUTTONS -->
-    <div class="section">
-      <div class="section-title"><span>🔘</span> Buttons & redirect</div>
-      <div class="field">
-        <label>Primary button label</label>
-        <input type="text" name="btn1Label" value="${esc(cfg.btn1Label)}" placeholder="Claim your deal →">
-      </div>
-      <div class="field">
-        <label>Secondary button label <span style="font-weight:400;color:#8a8d91">(leave empty to hide)</span></label>
-        <input type="text" name="btn2Label" value="${esc(cfg.btn2Label)}" placeholder="Learn more">
-      </div>
-      <div class="field">
-        <label>Redirect URL <span style="color:#c00">*</span></label>
-        <input type="url" name="redirectURL" value="${esc(cfg.redirectURL)}" placeholder="https://scrollgallery.com/offer1" required>
-        <div class="hint">Where fans go when they click the button</div>
-      </div>
-    </div>
-
-    <!-- QUICK REPLIES -->
-    <div class="section">
-      <div class="section-title"><span>⚡</span> Quick reply chips</div>
-      <div class="field">
-        <label>Chips (comma separated)</label>
-        <input type="text" name="chips" value="${esc(cfg.chips)}" placeholder="Yes please!,Maybe later,Tell me more">
-        <div class="hint">Leave empty to hide chips</div>
-      </div>
-    </div>
-
-    <!-- MISC -->
-    <div class="section">
-      <div class="section-title"><span>⚙️</span> Settings</div>
-      <div class="field">
-        <label>Typing delay (milliseconds)</label>
-        <input type="number" name="delay" value="${cfg.delay}" min="500" max="5000" step="100">
-        <div class="hint">How long the typing dots show before the message appears (1800 = 1.8 sec)</div>
-      </div>
-    </div>
-
-    <!-- LIVE URL PREVIEW -->
-    <div class="section">
-      <div class="section-title"><span>🔗</span> Your fan page URL</div>
-      <div class="hint" style="margin-bottom:8px">Share this link in your Messenger broadcasts. No parameters needed — it uses the config above.</div>
-      <div class="url-box" id="urlBox"><strong>https://your-app.railway.app/</strong></div>
-      <div class="hint" style="margin-top:8px">You can still override any field per-broadcast using URL params (e.g. ?title=New+Offer&url=...)</div>
-    </div>
-
-    <div class="save-bar">
-      <button type="submit" class="save-btn">Save & go live →</button>
-    </div>
-
-  </form>
 </div>
 
 <script>
-// Show current origin in URL box
 document.getElementById('urlBox').innerHTML = '<strong>' + window.location.origin + '/</strong>';
 </script>
-
 </body>
 </html>`;
 }
