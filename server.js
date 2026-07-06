@@ -610,8 +610,24 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
 <div class="layout">
 <div class="form-col">
   ${msg ? `<div class="toast">${esc(msg)}</div>` : ''}
-  <form method="POST" action="/admin/save">
-  
+
+  <!-- Upload forms OUTSIDE the save form to avoid nesting -->
+  <form method="POST" action="/admin/avatar" enctype="multipart/form-data" id="avatarForm">
+    <input type="hidden" name="id" value="${esc(tpl.id)}">
+    <input type="file" name="avatar" id="avatarFile" accept="image/*" style="display:none" onchange="this.form.submit()">
+  </form>
+  <form method="POST" action="/admin/avatar/remove" id="rmAvatarForm">
+    <input type="hidden" name="id" value="${esc(tpl.id)}">
+  </form>
+  <form method="POST" action="/admin/cardimg" enctype="multipart/form-data" id="cardimgForm">
+    <input type="hidden" name="id" value="${esc(tpl.id)}">
+    <input type="file" name="cardimg" id="cardimgFile" accept="image/*" style="display:none" onchange="this.form.submit()">
+  </form>
+  <form method="POST" action="/admin/cardimg/remove" id="rmCardForm">
+    <input type="hidden" name="id" value="${esc(tpl.id)}">
+  </form>
+
+  <form method="POST" action="/admin/save" id="saveForm">
   <input type="hidden" name="id" value="${esc(tpl.id)}">
 
   <table class="tbl">
@@ -622,11 +638,8 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
     <tr><td>Profile photo</td><td>
       <div class="img-row">
         <div class="av-thumb">${avHtml}</div>
-        <form method="POST" action="/admin/avatar" enctype="multipart/form-data" style="display:inline">
-          <input type="hidden" name="id" value="${esc(tpl.id)}">
-          <label class="up-btn">📷 Upload<input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
-        </form>
-        ${tpl.avatarImg ? `<form method="POST" action="/admin/avatar/remove" style="display:inline"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
+        <label class="up-btn" onclick="event.preventDefault();document.getElementById('avatarFile').click()">📷 Upload</label>
+        ${tpl.avatarImg ? `<button type="button" class="rm-btn" onclick="document.getElementById('rmAvatarForm').submit()">✕ Remove</button>` : ''}
       </div>
     </td></tr>
     <tr><td colspan="2" class="sec-hdr">💬 Message</td></tr>
@@ -638,11 +651,8 @@ body{font-family:-apple-system,Arial,sans-serif;background:#f0f2f5;min-height:10
     <tr><td>Card image</td><td>
       <div class="img-row" style="margin-bottom:6px">
         <div class="sq-thumb">${cardPreviewHtml}</div>
-        <form method="POST" action="/admin/cardimg" enctype="multipart/form-data" style="display:inline">
-          <input type="hidden" name="id" value="${esc(tpl.id)}">
-          <label class="up-btn">🖼 Upload<input type="file" name="cardimg" accept="image/*" onchange="this.form.submit()" style="display:none"></label>
-        </form>
-        ${tpl.cardImg ? `<form method="POST" action="/admin/cardimg/remove" style="display:inline"><input type="hidden" name="id" value="${esc(tpl.id)}"><button class="rm-btn">✕</button></form>` : ''}
+        <label class="up-btn" onclick="event.preventDefault();document.getElementById('cardimgFile').click()">🖼 Upload</label>
+        ${tpl.cardImg ? `<button type="button" class="rm-btn" onclick="document.getElementById('rmCardForm').submit()">✕ Remove</button>` : ''}
       </div>
       <input type="url" name="cardImg" value="${esc(tpl.cardImg)}" placeholder="or paste image URL here…">
     </td></tr>
